@@ -70,6 +70,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        TelegramBotInstance.telegramBot.start()
+
         setContent {
             AutoVubqTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {

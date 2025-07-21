@@ -9,3 +9,7 @@ object AutoConfig {
 object AutoInstance {
     val autoADB = AutoADB()
 }
+
+object TelegramBotInstance {
+    val telegramBot = TelegramBot()
+}
