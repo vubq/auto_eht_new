@@ -220,65 +220,66 @@ class TelegramBot {
     private fun menuStart(id: Long) {
         bot.sendMessage(
             ChatId.fromId(id),
-            "Bot đã được khởi động! \n\n" +
-                    "Command: \n\n" +
-                    "Trang bị: \n" +
-                    "/auto_Equip_Armor_B \n" +
-                    "/auto_Equip_Gloves_B \n" +
-                    "/auto_Equip_Shoe_B \n" +
-                    "/auto_Equip_Necklace_B \n" +
-                    "/auto_Equip_Ring_B \n" +
-                    "/auto_Equip_Weapon_B \n" +
-                    "/auto_Equip_Armor_A \n" +
-                    "/auto_Equip_Gloves_A \n" +
-                    "/auto_Equip_Shoe_A \n" +
-                    "/auto_Equip_Necklace_A \n" +
-                    "/auto_Equip_Ring_A \n" +
-                    "/auto_Equip_Weapon_A \n\n" +
-                    "Cường hóa: \n" +
-                    "/auto_Strengthen_1 \n" +
-                    "/auto_Strengthen_2 \n" +
-                    "/auto_Strengthen_3 \n" +
-                    "/auto_Strengthen_4 \n" +
-                    "/auto_Strengthen_5 \n" +
-                    "/auto_Strengthen_6 \n" +
-                    "/auto_Strengthen_7 \n" +
-                    "/auto_Strengthen_8 \n\n" +
-                    "Tẩy thuộc tính: \n" +
-                    "/auto_EraseAttribute_1 \n" +
-                    "/auto_EraseAttribute_2 \n" +
-                    "/auto_EraseAttribute_3 \n" +
-                    "/auto_EraseAttribute_4 \n" +
-                    "/auto_EraseAttribute_5 \n" +
-                    "/auto_EraseAttribute_6 \n" +
-                    "/auto_EraseAttribute_7 \n" +
-                    "/auto_EraseAttribute_8 \n\n" +
-                    "Thú cưỡi: \n" +
-                    "/auto_RidingAnimal \n\n" +
-                    "Rương boss: \n" +
-                    "/auto_BossCheat \n\n" +
-                    "Tính cách: \n" +
-                    "/auto_Character \n\n" +
-                    "Đọc file txt: \n" +
-                    "/readFile_Equip \n" +
-                    "/readFile_Strengthen \n" +
-                    "/readFile_StrengthenMax \n" +
-                    "/readFile_EraseAttribute \n" +
-                    "/readFile_EraseAttributeMax \n" +
-                    "/readFile_RidingAnimal \n" +
-                    "/readFile_BossCheat \n" +
-                    "/readFile_Character \n\n" +
-                    "Clear file txt: \n" +
-                    "/clearFile_Equip \n" +
-                    "/clearFile_Strengthen \n" +
-                    "/clearFile_StrengthenMax \n" +
-                    "/clearFile_EraseAttribute \n" +
-                    "/clearFile_EraseAttributeMax \n" +
-                    "/clearFile_RidingAnimal \n" +
-                    "/clearFile_BossCheat \n" +
-                    "/clearFile_Character \n\n" +
-                    "Dừng: \n" +
-                    "/stopAuto \n\n"
+            "Bot auto EHT by Quang Vũ"
+//            "Bot đã được khởi động! \n\n" +
+//                    "Command: \n\n" +
+//                    "Trang bị: \n" +
+//                    "/auto_Equip_Armor_B \n" +
+//                    "/auto_Equip_Gloves_B \n" +
+//                    "/auto_Equip_Shoe_B \n" +
+//                    "/auto_Equip_Necklace_B \n" +
+//                    "/auto_Equip_Ring_B \n" +
+//                    "/auto_Equip_Weapon_B \n" +
+//                    "/auto_Equip_Armor_A \n" +
+//                    "/auto_Equip_Gloves_A \n" +
+//                    "/auto_Equip_Shoe_A \n" +
+//                    "/auto_Equip_Necklace_A \n" +
+//                    "/auto_Equip_Ring_A \n" +
+//                    "/auto_Equip_Weapon_A \n\n" +
+//                    "Cường hóa: \n" +
+//                    "/auto_Strengthen_1 \n" +
+//                    "/auto_Strengthen_2 \n" +
+//                    "/auto_Strengthen_3 \n" +
+//                    "/auto_Strengthen_4 \n" +
+//                    "/auto_Strengthen_5 \n" +
+//                    "/auto_Strengthen_6 \n" +
+//                    "/auto_Strengthen_7 \n" +
+//                    "/auto_Strengthen_8 \n\n" +
+//                    "Tẩy thuộc tính: \n" +
+//                    "/auto_EraseAttribute_1 \n" +
+//                    "/auto_EraseAttribute_2 \n" +
+//                    "/auto_EraseAttribute_3 \n" +
+//                    "/auto_EraseAttribute_4 \n" +
+//                    "/auto_EraseAttribute_5 \n" +
+//                    "/auto_EraseAttribute_6 \n" +
+//                    "/auto_EraseAttribute_7 \n" +
+//                    "/auto_EraseAttribute_8 \n\n" +
+//                    "Thú cưỡi: \n" +
+//                    "/auto_RidingAnimal \n\n" +
+//                    "Rương boss: \n" +
+//                    "/auto_BossCheat \n\n" +
+//                    "Tính cách: \n" +
+//                    "/auto_Character \n\n" +
+//                    "Đọc file txt: \n" +
+//                    "/readFile_Equip \n" +
+//                    "/readFile_Strengthen \n" +
+//                    "/readFile_StrengthenMax \n" +
+//                    "/readFile_EraseAttribute \n" +
+//                    "/readFile_EraseAttributeMax \n" +
+//                    "/readFile_RidingAnimal \n" +
+//                    "/readFile_BossCheat \n" +
+//                    "/readFile_Character \n\n" +
+//                    "Clear file txt: \n" +
+//                    "/clearFile_Equip \n" +
+//                    "/clearFile_Strengthen \n" +
+//                    "/clearFile_StrengthenMax \n" +
+//                    "/clearFile_EraseAttribute \n" +
+//                    "/clearFile_EraseAttributeMax \n" +
+//                    "/clearFile_RidingAnimal \n" +
+//                    "/clearFile_BossCheat \n" +
+//                    "/clearFile_Character \n\n" +
+//                    "Dừng: \n" +
+//                    "/stopAuto \n\n"
         )
     }
 

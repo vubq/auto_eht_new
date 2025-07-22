@@ -189,13 +189,13 @@ class AutoADB {
         click(538, 937, 500)
 
         //Nhấn OK
-        click(609, 869, 4000)
+        click(609, 869, 5000)
 
         //Mở EHT
-        "com.superplanet.evilhunter".openApp(10000)
+        "com.superplanet.evilhunter".openApp(15000)
 
         //Nhấn Touch To Start
-        click(351, 1092, 18000)
+        click(351, 1092, 30000)
 
         //Nhấn đóng
         click(358, 973, 500)
@@ -247,10 +247,10 @@ class AutoADB {
 
                 //Nhấn chọn đồ
                 if (kichBan == "Vũ khí") {
-                    swipe(268, 797, 268, 476, 500, 0)
-                    swipe(268, 797, 268, 476, 500, 0)
-                    swipe(268, 797, 268, 476, 500, 0)
-                    swipe(268, 797, 268, 476, 500, 500)
+                    swipe(280, 776, 290, 479, 1000, 0)
+                    swipe(280, 776, 290, 479, 1000, 0)
+                    swipe(280, 776, 290, 479, 1000, 0)
+                    swipe(280, 776, 290, 479, 1000, 500)
 
                     //Vũ khí
                     click(355, 770, 500)
@@ -258,7 +258,7 @@ class AutoADB {
                     //Các đồ khác
                     //Hỗn độn
                     //click(796, 1238, 500)
-                    swipe(268, 797, 268, 476, 500, 500)
+                    swipe(280, 776, 290, 479, 1000, 500)
                     click(186, 775, 500)
                 }
 
