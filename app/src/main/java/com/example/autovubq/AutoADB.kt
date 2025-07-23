@@ -186,19 +186,19 @@ class AutoADB {
         "com.machiav3lli.backup".openApp(500)
 
         //Nhấn khôi phục
-        click(538, 937, 500)
+        click(619, 1004, 500)
 
         //Nhấn OK
-        click(609, 869, 5000)
+        click(663, 771, 5000)
 
         //Mở EHT
         "com.superplanet.evilhunter".openApp(15000)
 
         //Nhấn Touch To Start
-        click(351, 1092, 30000)
+        click(341, 1090, 30000)
 
         //Nhấn đóng
-        click(358, 973, 500)
+        click(359, 972, 500)
     }
 
     private fun backup() {
@@ -206,13 +206,13 @@ class AutoADB {
         "com.machiav3lli.backup".openApp(500)
 
         //Nhấn sao lưu
-        click(184, 504, 500)
+        click(176, 755, 500)
 
         //Nhấn dữ liệu phương tiện
-        click(93, 836, 500)
+        click(53, 749, 500)
 
         //Nhấn OK
-        click(609, 965, 8000)
+        click(661, 823, 8000)
     }
 
     private fun trangBi() {
@@ -225,62 +225,66 @@ class AutoADB {
                 //Nhấn chọn lò rèn hoặc kim hoàn
                 if (kichBan == "Dây chuyền" || kichBan == "Nhẫn") {
                     //Kim hoàn
-                    click(475, 775, 500)
+                    click(464, 749, 500)
                 } else {
                     //Lò rèn
-                    click(304, 700, 500)
+                    click(305, 685, 500)
                 }
 
                 //Nhấn chọn loại đồ
                 if (kichBan == "Giáp" || kichBan == "Nhẫn") {
                     //Giáp or nhẫn
-                    click(206, 444, 500)
+                    click(206, 448, 500)
                 }
                 if (kichBan == "Găng") {
                     //Găng
-                    click(265, 444, 500)
+                    click(268, 448, 500)
                 }
                 if (kichBan == "Giày") {
                     //Giày
-                    click(328, 444, 500)
+                    click(327, 448, 500)
                 }
 
                 //Nhấn chọn đồ
                 if (kichBan == "Vũ khí") {
-                    swipe(280, 776, 290, 479, 1000, 0)
-                    swipe(280, 776, 290, 479, 1000, 0)
-                    swipe(280, 776, 290, 479, 1000, 0)
-                    swipe(280, 776, 290, 479, 1000, 500)
+                    swipe(287, 783, 254, 481, 500, 0)
+                    swipe(280, 776, 290, 479, 500, 0)
+                    swipe(280, 776, 290, 479, 500, 0)
+                    swipe(280, 776, 290, 479, 500, 500)
 
                     //Vũ khí
                     click(355, 770, 500)
                 } else {
                     //Các đồ khác
-                    //Hỗn độn
-                    //click(796, 1238, 500)
-                    swipe(280, 776, 290, 479, 1000, 500)
-                    click(186, 775, 500)
+                    if (kichBan == "Dây chuyền" || kichBan == "Nhẫn") {
+                        //Hỗn độn
+                        click(522, 632, 500)
+                    } else {
+                        //Vực thẳm
+                        swipe(280, 776, 290, 479, 500, 500)
+                        click(187, 771, 500)
+                    }
                 }
 
                 //Kéo đầy thanh
-                swipe(180, 984, 963, 984, 500, 500)
+                swipe(182, 984, 684, 984, 500, 500)
 
                 //Nhấn điều chế
-                click(260, 1100, 4000)
+                click(259, 1098, 4000)
 
                 //Nhấn tìm thuộc tính
-                click(359, 436, 500)
+                click(350, 432, 500)
 
                 //Nhấn thiết lập sẵn A
-                click(144, 203, 500)
+                click(150, 201, 500)
 
                 //Nhấn tìm kiếm
-                click(238, 1122, 2000)
+                click(240, 1126, 2000)
 
                 "trangbi".screenCapture(0)
 
                 if (!auto) break
-                cropImage("trangbi", 81, 403, 461 - 81, 469 - 403)
+                cropImage("trangbi", 87, 415, 466 - 87, 467 - 415)
 
                 if (!auto) break
                 val comparativeWords = listOf("4 thuoc tinh co hieu luc")
@@ -296,21 +300,21 @@ class AutoADB {
                 if (!timKiemCaThietLapB) continue
 
                 //Nhấn xác nhận
-                click(360, 1155, 500)
+                click(357, 1147, 500)
 
                 //Nhấn tìm thuộc tính
-                click(359, 436, 500)
+                click(350, 432, 500)
 
                 //Nhấn thiết lập sẵn B
-                click(308, 203, 500)
+                click(305, 202, 500)
 
                 //Nhấn tìm kiếm
-                click(238, 1122, 2000)
+                click(240, 1126, 2000)
 
                 "trangbi".screenCapture(0)
 
                 if (!auto) break
-                cropImage("trangbi", 81, 403, 461 - 81, 469 - 403)
+                cropImage("trangbi", 87, 415, 466 - 87, 467 - 415)
 
                 if (!auto) break
                 val isTrue2 = getTextFromImage("trangbi", comparativeWords, 2)
