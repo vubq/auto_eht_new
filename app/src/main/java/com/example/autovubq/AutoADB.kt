@@ -41,6 +41,7 @@ class AutoADB {
             when (loaiAuto) {
                 "Trang bị" -> trangBi()
                 "Cường hóa" -> cuongHoa()
+                "Thú cưỡi" -> thuCuoi()
                 "Tẩy thuộc tính" -> tayThuocTinh()
                 else -> {}
             }
@@ -68,8 +69,11 @@ class AutoADB {
     fun docFile(fileName: String): String {
         val file = File("$pathData$fileName.txt")
         if (!file.exists()) {
-            return "Không có file!"
+            return "Không có file"
         } else {
+            if (file.readText().isEmpty()) {
+                return "Chưa có dữ liệu"
+            }
             return file.readText()
         }
     }
@@ -77,10 +81,10 @@ class AutoADB {
     fun xoaFile(fileName: String): String {
         val file = File("$pathData$fileName.txt")
         if (!file.exists()) {
-            return "Không có file!"
+            return "Không có file"
         } else {
             file.writeText("")
-            return "Đã clear file!"
+            return "Đã xóa dữ liệu"
         }
     }
 
@@ -189,13 +193,13 @@ class AutoADB {
         click(619, 1004, 500)
 
         //Nhấn OK
-        click(663, 771, 5000)
+        click(663, 771, 4000)
 
         //Mở EHT
-        "com.superplanet.evilhunter".openApp(15000)
+        "com.superplanet.evilhunter".openApp(13000)
 
         //Nhấn Touch To Start
-        click(341, 1090, 30000)
+        click(341, 1090, 25000)
 
         //Nhấn đóng
         click(359, 972, 500)
@@ -454,24 +458,29 @@ class AutoADB {
             while (auto) {
                 initAuto()
 
-                click(1005, 910, 5000)
+                //Nhan chon thuyen
+                click(597, 460, 3500)
 
-                click(190, 2265, 500)
+                //Nhan trieu hoi
+                click(153, 1197, 500)
 
-                click(377, 1672, 500)
+                //Nhan bo qua hoat canh
+                click(262, 896, 500)
 
-                click(274, 1517, 2000)
+                //Nhan 1 lan
+                click(192, 798, 1500)
 
-                "RidingAnimal".screenCapture(0)
+                "thucuoi".screenCapture(0)
 
                 if (!auto) break
-                cropImage("RidingAnimal", 98, 754, 266, 68)
+                cropImage("thucuoi", 89, 337, 254 - 89, 379 - 337)
 
                 if (!auto) break
                 val isTrue2 =
                     getTextFromImage(
-                        "RidingAnimal",
-                        listOf("LEO S", "BLUBEE S", "PINIA S", "INFERNO S"),
+                        "thucuoi",
+//                        listOf("LEO S", "BLUBEE S", "PINIA S", "INFERNO S"),
+                        listOf("WANG WANG A", "DUN DUN A", "TUCAN A", "PYRO A", "GRIZZLY A", "GRAY A"),
                         1
                     )
 
