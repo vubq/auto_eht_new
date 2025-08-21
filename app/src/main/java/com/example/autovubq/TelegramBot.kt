@@ -49,7 +49,8 @@ class TelegramBot {
 
                 var index = 0
                 while (index < fullText.length) {
-                    val chunk = fullText.substring(index, (index + maxLength).coerceAtMost(fullText.length))
+                    val chunk =
+                        fullText.substring(index, (index + maxLength).coerceAtMost(fullText.length))
                     bot.sendMessage(ChatId.fromId(message.chat.id), chunk)
                     index += maxLength
                 }

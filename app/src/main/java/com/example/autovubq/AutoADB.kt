@@ -1,5 +1,6 @@
 package com.example.autovubq
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.google.mlkit.vision.common.InputImage
@@ -13,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import java.io.BufferedWriter
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.InputStream
@@ -20,9 +22,9 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class AutoADB {
+class AutoADB(private val context: Context) {
 
-    private var pathData: String = "/storage/emulated/0/AutoEHT/"
+    private var pathData: String = context.getExternalFilesDir(null)?.absolutePath + "/"
     private var auto = false
     private var loaiAuto = "Trang bị"
     private var kichBan = "Giáp"
@@ -66,6 +68,20 @@ class AutoADB {
         job?.cancel()
     }
 
+    fun dongGame() {
+        job = CoroutineScope(Dispatchers.Default).launch {
+            auto = true
+            Thread {
+                while (auto) {
+                    println("dosngasdasdasfd ")
+                    "com.superplanet.evilhunter".closeApp(0)
+                    auto = false
+                }
+            }.start()
+        }
+        job?.cancel()
+    }
+
     fun docFile(fileName: String): String {
         val file = File("$pathData$fileName.txt")
         if (!file.exists()) {
@@ -97,6 +113,10 @@ class AutoADB {
 
     private fun String.openApp(delay: Long) {
         "monkey -p $this -c android.intent.category.LAUNCHER 1".adbExecution(delay)
+    }
+
+    private fun String.closeApp(delay: Long) {
+        "am force-stop $this".adbExecution(delay)
     }
 
     private fun click(x: Int, y: Int, delay: Long) {
@@ -172,51 +192,70 @@ class AutoADB {
     }
 
     private fun cropImage(fileName: String, x: Int, y: Int, width: Int, height: Int) {
-        val filePath = "$pathData$fileName.png"
-        val inputStream: InputStream = File(filePath).inputStream()
-        val bitmap = BitmapFactory.decodeStream(inputStream)
+        try {
+            val file = File(pathData, "$fileName.png")
 
-        val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, width, height)
+            if (!file.exists()) {
+                throw FileNotFoundException("File không tồn tại: ${file.absolutePath}")
+            }
 
-        val outputFile = File(filePath)
-        val outputStream = FileOutputStream(outputFile)
-        croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-        outputStream.flush()
-        outputStream.close()
+            val bitmap = file.inputStream().use { BitmapFactory.decodeStream(it) }
+                ?: throw IllegalArgumentException("Không thể đọc bitmap từ file")
+
+            val safeWidth = minOf(width, bitmap.width - x)
+            val safeHeight = minOf(height, bitmap.height - y)
+            if (safeWidth <= 0 || safeHeight <= 0) throw IllegalArgumentException("Kích thước crop không hợp lệ")
+
+            val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, safeWidth, safeHeight)
+
+            FileOutputStream(file).use {
+                croppedBitmap.compress(
+                    Bitmap.CompressFormat.PNG,
+                    100,
+                    it
+                )
+            }
+
+        } catch (e: Exception) {
+            TelegramBotInstance.telegramBot.sendMessage(e.message.toString())
+        }
     }
 
     private fun initAuto() {
-        //Mở App Backup
-        "com.machiav3lli.backup".openApp(500)
+        //Dong eht
+        "com.superplanet.evilhunter".closeApp(500)
 
-        //Nhấn khôi phục
-        click(619, 1004, 500)
+        //Mo titanium backup
+        "com.keramidas.TitaniumBackup".openApp(500)
 
-        //Nhấn OK
-        click(663, 771, 4000)
+        //Chon eht
+        click(266, 716, 500)
+
+        //Nhan restore
+        click(124, 481, 500)
+
+        //Nhan data only
+        click(150, 793, 2000)
 
         //Mở EHT
-        "com.superplanet.evilhunter".openApp(13000)
+        "com.superplanet.evilhunter".openApp(10000)
 
-        //Nhấn Touch To Start
-        click(341, 1090, 25000)
+        //Nhan touch to start
+        click(345, 1090, 18000)
 
-        //Nhấn đóng
+        //Nhan dong
         click(359, 972, 500)
     }
 
     private fun backup() {
-        //Mở App Backup
-        "com.machiav3lli.backup".openApp(500)
+        //Mo titanium backup
+        "com.keramidas.TitaniumBackup".openApp(500)
 
-        //Nhấn sao lưu
-        click(176, 755, 500)
+        //Chon eht
+        click(266, 716, 500)
 
-        //Nhấn dữ liệu phương tiện
-        click(53, 749, 500)
-
-        //Nhấn OK
-        click(661, 823, 8000)
+        //Nhan backup
+        click(147, 284, 8000)
     }
 
     private fun trangBi() {
@@ -480,7 +519,14 @@ class AutoADB {
                     getTextFromImage(
                         "thucuoi",
 //                        listOf("LEO S", "BLUBEE S", "PINIA S", "INFERNO S"),
-                        listOf("WANG WANG A", "DUN DUN A", "TUCAN A", "PYRO A", "GRIZZLY A", "GRAY A"),
+                        listOf(
+                            "WANG WANG A",
+                            "DUN DUN A",
+                            "TUCAN A",
+                            "PYRO A",
+                            "GRIZZLY A",
+                            "GRAY A"
+                        ),
                         1
                     )
 

@@ -70,6 +70,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        AutoInstance.autoADB = AutoADB(this)
         TelegramBotInstance.telegramBot.start()
 
         setContent {
