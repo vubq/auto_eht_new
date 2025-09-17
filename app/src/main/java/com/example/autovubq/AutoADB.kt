@@ -229,7 +229,7 @@ class AutoADB(private val context: Context) {
         "com.keramidas.TitaniumBackup".openApp(500)
 
         //Chon eht
-        click(266, 716, 500)
+        click(337, 339, 500)
 
         //Nhan restore
         click(124, 481, 500)
@@ -296,7 +296,7 @@ class AutoADB(private val context: Context) {
                     swipe(280, 776, 290, 479, 500, 500)
 
                     //Vũ khí
-                    click(355, 770, 500)
+                    click(353, 577, 500)
                 } else {
                     //Các đồ khác
                     if (kichBan == "Dây chuyền" || kichBan == "Nhẫn") {
