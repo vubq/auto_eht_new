@@ -3,6 +3,7 @@ package com.example.autovubq
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -45,6 +46,8 @@ class AutoADB(private val context: Context) {
                 "Cường hóa" -> cuongHoa()
                 "Thú cưỡi" -> thuCuoi()
                 "Tẩy thuộc tính" -> tayThuocTinh()
+                "Rương trang bị thú" -> ruongTrangBiThu()
+                "Test" -> test()
                 else -> {}
             }
         }
@@ -252,7 +255,7 @@ class AutoADB(private val context: Context) {
         "com.keramidas.TitaniumBackup".openApp(500)
 
         //Chon eht
-        click(266, 716, 500)
+        click(337, 339, 500)
 
         //Nhan backup
         click(147, 284, 8000)
@@ -607,6 +610,134 @@ class AutoADB(private val context: Context) {
                         break
                     }
                 }
+            }
+        }.start()
+    }
+
+    private fun nhanDienMau(fileName: String, mau: String): Boolean {
+        val inputStream: InputStream = File("$pathData$fileName.png").inputStream()
+        val bitmap = BitmapFactory.decodeStream(inputStream)
+
+        val width = bitmap.width
+        val height = bitmap.height
+        var r = 0
+        var g = 0
+        var b = 0
+        var count = 0
+
+        val border = 4
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                if (x < border || y < border || x >= width - border || y >= height - border) {
+                    val pixel = bitmap.getPixel(x, y)
+                    r += Color.red(pixel)
+                    g += Color.green(pixel)
+                    b += Color.blue(pixel)
+                    count++
+                }
+            }
+        }
+
+        if (count == 0) return false
+
+        val avgR = r / count
+        val avgG = g / count
+        val avgB = b / count
+
+        // Đổi sang HSV để phân loại màu
+        val hsv = FloatArray(3)
+        Color.RGBToHSV(avgR, avgG, avgB, hsv)
+        val hue = hsv[0].toDouble()      // 0-360
+//        val sat = hsv[1]      // 0-1
+//        val valBrightness = hsv[2] // 0-1
+//
+//        val colorResult = when {
+//            hue in 25f..60f && sat > 0.4f -> "ORANGE"  // vàng-cam
+//            (hue in 260f..300f) && sat > 0.3f -> "PURPLE" // tím
+//            (hue in 190f..240f) && sat > 0.3f -> "BLUE"   // xanh
+//            else -> "UNKNOWN"
+//        }
+
+        //R=38,G=36,B=29,H=46.666668 vang cam
+        //R=38,G=35,B=30,H=37.5 tim
+        //R=38,G=36,B=30,H=45.0 xanh
+
+        val colorResult = when {
+            // Vàng cam
+            avgR == 38 &&
+                    avgG == 36 &&
+                    avgB == 29 &&
+                    hue == 46.66666793823242 -> "Vang cam"
+
+            // Tím
+            avgR == 38 &&
+                    avgG == 35 &&
+                    avgB == 30 &&
+                    hue == 37.5 -> "Tim"
+
+            // Xanh
+            avgR == 38 &&
+                    avgG == 36 &&
+                    avgB == 30 &&
+                    hue == 45.0 -> "Xanh"
+
+            else -> "Khong ro"
+        }
+
+        // Ghi kết quả ra file log
+        val textToAppend = "$colorResult (R=$avgR,G=$avgG,B=$avgB,H=$hue) - ${getCurrentDateTime()}"
+        BufferedWriter(FileWriter("$pathData$fileName.txt", true)).use { writer ->
+            writer.write(textToAppend)
+            writer.newLine()
+        }
+
+        return colorResult == mau
+    }
+
+    private fun test() {
+        Thread {
+            "com.superplanet.evilhunter".openApp(500)
+            "trangbithu".screenCapture(0)
+            cropImage("trangbithu", 273, 456, 444 - 273, 608 - 456)
+
+            val auraColor = nhanDienMau("trangbithu", "Vang cam")
+        }.start()
+    }
+
+    private fun ruongTrangBiThu() {
+        auto = true
+        Thread {
+            while (auto) {
+                initAuto()
+
+                //Nhan chon kho thi tran
+                click(502, 1214, 500)
+
+                //Nhan dac biet
+                click(403, 660, 500)
+
+                //Keo
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+
+                //Nhan chon ruong
+                click(482, 730, 500)
+
+                //Nhan su dung
+                click(355, 855, 3000)
+
+                "trangbithu".screenCapture(0)
+
+                if (!auto) break
+                cropImage("trangbithu", 273, 456, 444 - 273, 608 - 456)
+
+                if (!auto) break
+                val isTrue = nhanDienMau("trangbithu", "Vang cam")
+                if (!auto) break
+                if (isTrue) backup()
             }
         }.start()
     }

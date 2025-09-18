@@ -141,7 +141,9 @@ fun MainScreen(
         "Tẩy thuộc tính",
         "Thú cưỡi",
         "Tính cách",
-        "Rương boss"
+        "Rương boss",
+        "Rương trang bị thú",
+        "Test"
     )
 
     val initialScenarioOptions = when (autoTypes[0]) {
