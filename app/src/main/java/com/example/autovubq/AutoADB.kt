@@ -241,10 +241,10 @@ class AutoADB(private val context: Context) {
         click(150, 793, 2000)
 
         //Mở EHT
-        "com.superplanet.evilhunter".openApp(10000)
+        "com.superplanet.evilhunter".openApp(12000)
 
         //Nhan touch to start
-        click(345, 1090, 18000)
+        click(345, 1090, 24000)
 
         //Nhan dong
         click(359, 972, 500)
@@ -724,7 +724,7 @@ class AutoADB(private val context: Context) {
                 swipe(419, 1136, 175, 721, 500, 500)
 
                 //Nhan chon ruong
-                click(482, 730, 500)
+                click(363, 730, 500)
 
                 //Nhan su dung
                 click(355, 855, 3000)
