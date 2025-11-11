@@ -244,7 +244,7 @@ class AutoADB(private val context: Context) {
         "com.superplanet.evilhunter".openApp(12000)
 
         //Nhan touch to start
-        click(345, 1090, 24000)
+        click(345, 1090, 26000)
 
         //Nhan dong
         click(359, 972, 500)
@@ -303,8 +303,11 @@ class AutoADB(private val context: Context) {
                 } else {
                     //Các đồ khác
                     if (kichBan == "Dây chuyền" || kichBan == "Nhẫn") {
-                        //Hỗn độn
-                        click(522, 632, 500)
+//                        //Hỗn độn
+//                        click(522, 632, 500)
+                        //Vực thẳm
+                        swipe(280, 776, 290, 479, 500, 500)
+                        click(187, 771, 500)
                     } else {
                         //Vực thẳm
                         swipe(280, 776, 290, 479, 500, 500)
@@ -717,6 +720,9 @@ class AutoADB(private val context: Context) {
                 click(403, 660, 500)
 
                 //Keo
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
                 swipe(419, 1136, 175, 721, 500, 500)
                 swipe(419, 1136, 175, 721, 500, 500)
                 swipe(419, 1136, 175, 721, 500, 500)
