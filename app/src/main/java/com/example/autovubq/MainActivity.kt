@@ -42,8 +42,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.example.autovubq.ui.theme.AutoVubqTheme
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.net.URL
+import java.net.HttpURLConnection
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -62,13 +68,15 @@ class MainActivity : ComponentActivity() {
                 actionIfGranted()
             }
         } else {
-            // Với Android < 11 (nếu cần), bạn có thể bổ sung xin READ_EXTERNAL_STORAGE
             actionIfGranted()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        AutoInstance.autoADB = AutoADB(this)
+        TelegramBotInstance.telegramBot.start()
 
         setContent {
             AutoVubqTheme {
@@ -102,7 +110,8 @@ class MainActivity : ComponentActivity() {
                             startService(Intent(this, FloatingService::class.java))
                             moveTaskToBack(true)
                             AutoInstance.autoADB.moGame()
-                        }
+                        },
+                        onUpdateClick = { downloadAndInstallApk() } // ✅ Thêm nút cập nhật
                     )
                 }
             }
@@ -125,12 +134,72 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    // ✅ Hàm tải và cài đặt file APK
+    private fun downloadAndInstallApk() {
+        val apkUrl = "https://github.com/vubq/auto_eht_new/raw/Redfinger-Android10/app-debug.apk"
+        val fileName = "update-app.apk"
+
+        Toast.makeText(this, "Đang tải bản cập nhật...", Toast.LENGTH_SHORT).show()
+
+        Thread {
+            try {
+                val url = URL(apkUrl)
+                val connection = url.openConnection() as HttpURLConnection
+                connection.connect()
+
+                val file = File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+                val input = BufferedInputStream(url.openStream())
+                val output = FileOutputStream(file)
+
+                val data = ByteArray(1024)
+                var count: Int
+                while (input.read(data).also { count = it } != -1) {
+                    output.write(data, 0, count)
+                }
+
+                output.flush()
+                output.close()
+                input.close()
+
+                runOnUiThread {
+                    Toast.makeText(this, "Tải xong, đang mở cài đặt...", Toast.LENGTH_SHORT).show()
+                    installApk(file)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    Toast.makeText(this, "Lỗi tải cập nhật: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun installApk(file: File) {
+        val apkUri: Uri = FileProvider.getUriForFile(
+            this,
+            "${packageName}.provider",
+            file
+        )
+
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(apkUri, "application/vnd.android.package-archive")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+        }
+
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Không thể mở file cài đặt: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
 }
 
 @Composable
 fun MainScreen(
     onStartClick: () -> Unit,
-    onOpenGameClick: () -> Unit
+    onOpenGameClick: () -> Unit,
+    onUpdateClick: () -> Unit // ✅ callback nút update
 ) {
     val autoTypes = listOf(
         "Trang bị",
@@ -138,7 +207,9 @@ fun MainScreen(
         "Tẩy thuộc tính",
         "Thú cưỡi",
         "Tính cách",
-        "Rương boss"
+        "Rương boss",
+        "Rương trang bị thú",
+        "Test"
     )
 
     val initialScenarioOptions = when (autoTypes[0]) {
@@ -157,7 +228,6 @@ fun MainScreen(
         else -> emptyList()
     }
 
-    // Cập nhật lại selectedScenario mỗi khi loại auto thay đổi
     LaunchedEffect(selectedAutoType) {
         selectedScenario = scenarioOptions.firstOrNull() ?: ""
     }
@@ -201,9 +271,7 @@ fun MainScreen(
                 }
 
                 if (selectedAutoType == "Trang bị") {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = findConfigB, onCheckedChange = { findConfigB = it })
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Tìm cả thiết lập B")
@@ -215,7 +283,6 @@ fun MainScreen(
                         AutoConfig.selectedAutoType = selectedAutoType
                         AutoConfig.selectedScenario = selectedScenario
                         AutoConfig.findConfigB = findConfigB
-
                         onStartClick()
                     },
                     modifier = Modifier
@@ -232,6 +299,15 @@ fun MainScreen(
                         .height(50.dp)
                 ) {
                     Text("Mở game", fontSize = 18.sp)
+                }
+
+                Button(
+                    onClick = onUpdateClick, // ✅ Nút cập nhật
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                ) {
+                    Text("Cập nhật", fontSize = 18.sp)
                 }
             }
         }

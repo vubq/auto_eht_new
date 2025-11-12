@@ -1,7 +1,9 @@
 package com.example.autovubq
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -13,6 +15,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import java.io.BufferedWriter
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.InputStream
@@ -20,9 +23,9 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class AutoADB {
+class AutoADB(private val context: Context) {
 
-    private var pathData: String = "/storage/emulated/0/AutoEHT/"
+    private var pathData: String = context.getExternalFilesDir(null)?.absolutePath + "/"
     private var auto = false
     private var loaiAuto = "Trang bị"
     private var kichBan = "Giáp"
@@ -41,7 +44,10 @@ class AutoADB {
             when (loaiAuto) {
                 "Trang bị" -> trangBi()
                 "Cường hóa" -> cuongHoa()
+                "Thú cưỡi" -> thuCuoi()
                 "Tẩy thuộc tính" -> tayThuocTinh()
+                "Rương trang bị thú" -> ruongTrangBiThu()
+                "Test" -> test()
                 else -> {}
             }
         }
@@ -65,11 +71,28 @@ class AutoADB {
         job?.cancel()
     }
 
+    fun dongGame() {
+        job = CoroutineScope(Dispatchers.Default).launch {
+            auto = true
+            Thread {
+                while (auto) {
+                    println("dosngasdasdasfd ")
+                    "com.superplanet.evilhunter".closeApp(0)
+                    auto = false
+                }
+            }.start()
+        }
+        job?.cancel()
+    }
+
     fun docFile(fileName: String): String {
         val file = File("$pathData$fileName.txt")
         if (!file.exists()) {
-            return "Không có file!"
+            return "Không có file"
         } else {
+            if (file.readText().isEmpty()) {
+                return "Chưa có dữ liệu"
+            }
             return file.readText()
         }
     }
@@ -77,10 +100,10 @@ class AutoADB {
     fun xoaFile(fileName: String): String {
         val file = File("$pathData$fileName.txt")
         if (!file.exists()) {
-            return "Không có file!"
+            return "Không có file"
         } else {
             file.writeText("")
-            return "Đã clear file!"
+            return "Đã xóa dữ liệu"
         }
     }
 
@@ -93,6 +116,10 @@ class AutoADB {
 
     private fun String.openApp(delay: Long) {
         "monkey -p $this -c android.intent.category.LAUNCHER 1".adbExecution(delay)
+    }
+
+    private fun String.closeApp(delay: Long) {
+        "am force-stop $this".adbExecution(delay)
     }
 
     private fun click(x: Int, y: Int, delay: Long) {
@@ -168,55 +195,75 @@ class AutoADB {
     }
 
     private fun cropImage(fileName: String, x: Int, y: Int, width: Int, height: Int) {
-        val filePath = "$pathData$fileName.png"
-        val inputStream: InputStream = File(filePath).inputStream()
-        val bitmap = BitmapFactory.decodeStream(inputStream)
+        try {
+            val file = File(pathData, "$fileName.png")
 
-        val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, width, height)
+            if (!file.exists()) {
+                throw FileNotFoundException("File không tồn tại: ${file.absolutePath}")
+            }
 
-        val outputFile = File(filePath)
-        val outputStream = FileOutputStream(outputFile)
-        croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-        outputStream.flush()
-        outputStream.close()
+            val bitmap = file.inputStream().use { BitmapFactory.decodeStream(it) }
+                ?: throw IllegalArgumentException("Không thể đọc bitmap từ file")
+
+            val safeWidth = minOf(width, bitmap.width - x)
+            val safeHeight = minOf(height, bitmap.height - y)
+            if (safeWidth <= 0 || safeHeight <= 0) throw IllegalArgumentException("Kích thước crop không hợp lệ")
+
+            val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, safeWidth, safeHeight)
+
+            FileOutputStream(file).use {
+                croppedBitmap.compress(
+                    Bitmap.CompressFormat.PNG,
+                    100,
+                    it
+                )
+            }
+
+        } catch (e: Exception) {
+            TelegramBotInstance.telegramBot.sendMessage(e.message.toString())
+        }
     }
 
     private fun initAuto() {
-        //Mở App Backup
-        "com.machiav3lli.backup".openApp(500)
+        //Dong eht
+        "com.superplanet.evilhunter".closeApp(500)
 
-        //Nhấn khôi phục
-        click(841, 1958, 500)
+        //Mo titanium backup
+        "com.keramidas.TitaniumBackup".openApp(500)
 
-        //Nhấn OK
-        click(942, 1517, 5000)
+        //Chon eht
+        click(337, 339, 500)
+
+        //Nhan restore
+        click(124, 481, 500)
+
+        //Nhan data only
+        click(150, 793, 3000)
 
         //Mở EHT
-        "com.superplanet.evilhunter".openApp(13000)
+        "com.superplanet.evilhunter".openApp(12000)
 
-        //Nhấn Touch To Start
-        click(505, 1995, 29000)
+        //Nhan touch to start
+        click(345, 1090, 21000)
 
-        //Nhấn đóng
-        click(530, 1800, 500)
+        //Nhan dong
+        click(359, 972, 500)
     }
 
     private fun backup() {
-        //Mở App Backup
-        "com.machiav3lli.backup".openApp(500)
+        //Mo titanium backup
+        "com.keramidas.TitaniumBackup".openApp(500)
 
-        //Nhấn sao lưu
-        click(257, 1374, 500)
+        //Chon eht
+        click(337, 339, 500)
 
-        //Nhấn dữ liệu phương tiện
-        click(124, 1468, 500)
-
-        //Nhấn OK
-        click(935, 1640, 8000)
+        //Nhan backup
+        click(147, 284, 8000)
     }
 
     private fun trangBi() {
         auto = true
+        TelegramBotInstance.telegramBot.sendMessage("Bắt đầu auto: Trang bị")
         Thread {
             while (auto) {
                 initAuto()
@@ -224,98 +271,110 @@ class AutoADB {
                 //Nhấn chọn lò rèn hoặc kim hoàn
                 if (kichBan == "Dây chuyền" || kichBan == "Nhẫn") {
                     //Kim hoàn
-                    click(735, 1486, 500)
+                    click(464, 749, 500)
                 } else {
                     //Lò rèn
-                    click(432, 1361, 500)
+                    click(305, 685, 500)
                 }
 
                 //Nhấn chọn loại đồ
                 if (kichBan == "Giáp" || kichBan == "Nhẫn") {
                     //Giáp or nhẫn
-                    click(286, 929, 500)
+                    click(206, 448, 500)
+                    click(206, 448, 500)
                 }
                 if (kichBan == "Găng") {
                     //Găng
-                    click(387, 933, 500)
+                    click(268, 448, 500)
+                    click(268, 448, 500)
                 }
                 if (kichBan == "Giày") {
                     //Giày
-                    click(491, 929, 500)
+                    click(327, 448, 500)
+                    click(268, 448, 500)
                 }
 
                 //Nhấn chọn đồ
                 if (kichBan == "Vũ khí") {
-                    swipe(390, 1510, 390, 985, 500, 0)
-                    swipe(390, 1510, 390, 985, 500, 0)
-                    swipe(390, 1510, 390, 985, 500, 0)
-                    swipe(390, 1510, 390, 985, 500, 500)
+                    swipe(287, 783, 254, 481, 500, 0)
+                    swipe(280, 776, 290, 479, 500, 0)
+                    swipe(280, 776, 290, 479, 500, 0)
+                    swipe(280, 776, 290, 479, 500, 500)
 
                     //Vũ khí
-                    click(527, 1471, 500)
+                    click(353, 577, 500)
                 } else {
                     //Các đồ khác
-                    //Hỗn độn
-                    //click(796, 1238, 500)
-                    swipe(390, 1510, 390, 985, 500, 500)
-                    click(248, 1465, 500)
+                    if (kichBan == "Dây chuyền" || kichBan == "Nhẫn") {
+//                        //Hỗn độn
+//                        click(522, 632, 500)
+                        //Vực thẳm
+                        swipe(280, 776, 290, 479, 700, 500)
+                        click(187, 771, 500)
+                    } else {
+                        //Vực thẳm
+                        swipe(280, 776, 290, 479, 700, 500)
+                        click(187, 771, 500)
+                    }
                 }
 
                 //Kéo đầy thanh
-                swipe(241, 1786, 965, 1786, 500, 500)
+                swipe(182, 984, 684, 984, 500, 500)
 
                 //Nhấn điều chế
-                click(364, 1977, 7000)
+                click(259, 1098, 4000)
 
                 //Nhấn tìm thuộc tính
-                click(520, 910, 500)
+                click(350, 432, 500)
 
                 //Nhấn thiết lập sẵn A
-                click(183, 527, 500)
+                click(150, 201, 500)
 
                 //Nhấn tìm kiếm
-                click(335, 2045, 2000)
+                click(240, 1126, 2000)
 
-                "Equip".screenCapture(0)
+                "trangbi".screenCapture(0)
 
                 if (!auto) break
-                cropImage("Equip", 85, 865, 623, 107)
+                cropImage("trangbi", 87, 415, 466 - 87, 467 - 415)
 
                 if (!auto) break
                 val comparativeWords = listOf("4 thuoc tinh co hieu luc")
-                val isTrue = getTextFromImage("Equip", comparativeWords, 1)
+                val isTrue = getTextFromImage("trangbi", comparativeWords, 1)
 
                 if (!auto) break
                 if (isTrue) {
                     auto = false
+                    TelegramBotInstance.telegramBot.sendMessage("Đã tìm thấy trang bị [Thiết lập A]")
                     break
                 }
 
                 if (!timKiemCaThietLapB) continue
 
                 //Nhấn xác nhận
-                click(527, 2084, 500)
+                click(357, 1147, 500)
 
                 //Nhấn tìm thuộc tính
-                click(520, 910, 500)
+                click(350, 432, 500)
 
                 //Nhấn thiết lập sẵn B
-                click(455, 530, 500)
+                click(305, 202, 500)
 
                 //Nhấn tìm kiếm
-                click(335, 2045, 2000)
+                click(240, 1126, 2000)
 
-                "Equip".screenCapture(0)
-
-                if (!auto) break
-                cropImage("Equip", 85, 865, 623, 107)
+                "trangbi".screenCapture(0)
 
                 if (!auto) break
-                val isTrue2 = getTextFromImage("Equip", comparativeWords, 2)
+                cropImage("trangbi", 87, 415, 466 - 87, 467 - 415)
+
+                if (!auto) break
+                val isTrue2 = getTextFromImage("trangbi", comparativeWords, 2)
 
                 if (!auto) break
                 if (isTrue2) {
                     auto = false
+                    TelegramBotInstance.telegramBot.sendMessage("Đã tìm thấy trang bị [Thiết lập B]")
                     break
                 }
             }
@@ -324,32 +383,33 @@ class AutoADB {
 
     private fun cuongHoa() {
         auto = true
+        TelegramBotInstance.telegramBot.sendMessage("Bắt đầu auto: Cường hóa")
         Thread {
             while (auto) {
                 initAuto()
 
                 //Nhấn chọn cường hóa thần
-                click(535, 990, 500)
+                click(356, 511, 500)
 
                 //Nhấn chọn ô
-                if (kichBan == "Ô 1") click(198, 1746, 500)
-                if (kichBan == "Ô 2") click(292, 1746, 500)
-                if (kichBan == "Ô 3") click(389, 1746, 500)
-                if (kichBan == "Ô 4") click(483, 1746, 500)
-                if (kichBan == "Ô 5") click(584, 1746, 500)
-                if (kichBan == "Ô 6") click(678, 1746, 500)
-                if (kichBan == "Ô 7") click(779, 1746, 500)
-                if (kichBan == "Ô 8") click(873, 1746, 500)
+                if (kichBan == "Ô 1") click(151, 960, 500)
+                if (kichBan == "Ô 2") click(209, 960, 500)
+                if (kichBan == "Ô 3") click(268, 960, 500)
+                if (kichBan == "Ô 4") click(327, 960, 500)
+                if (kichBan == "Ô 5") click(386, 960, 500)
+                if (kichBan == "Ô 6") click(445, 960, 500)
+                if (kichBan == "Ô 7") click(505, 960, 500)
+                if (kichBan == "Ô 8") click(563, 960, 500)
 
-                "StrengthenMax".screenCapture(0)
+                "cuonghoamax".screenCapture(0)
 
                 if (!auto) break
-                cropImage("StrengthenMax", 109, 1262, 966 - 109, 1360 - 1262)
+                cropImage("cuonghoamax", 101, 657, 612 - 101, 705 - 657)
 
                 if (!auto) break
                 val isTrue =
                     getTextFromImage(
-                        "StrengthenMax",
+                        "cuonghoamax",
                         listOf("Khong the cuong hoa than them nua"),
                         1
                     )
@@ -357,19 +417,20 @@ class AutoADB {
                 if (!auto) break
                 if (isTrue) {
                     auto = false
+                    TelegramBotInstance.telegramBot.sendMessage("Đã cường hóa max")
                     break
                 }
 
                 //Nhấn cường hóa
-                click(303, 2002, 7000)
+                click(250, 1123, 3000)
 
-                "Strengthen".screenCapture(0)
-
-                if (!auto) break
-                cropImage("Strengthen", 186, 762, 881 - 186, 876 - 762)
+                "cuonghoa".screenCapture(0)
 
                 if (!auto) break
-                val isTrue2 = getTextFromImage("Strengthen", listOf("Cuong Hoa Thanh Cong"), 1)
+                cropImage("cuonghoa", 153, 354, 565 - 153, 407 - 354)
+
+                if (!auto) break
+                val isTrue2 = getTextFromImage("cuonghoa", listOf("Cuong Hoa Thanh Cong"), 1)
 
                 if (!auto) break
                 if (isTrue2) backup()
@@ -379,32 +440,33 @@ class AutoADB {
 
     private fun tayThuocTinh() {
         auto = true
+        TelegramBotInstance.telegramBot.sendMessage("Bắt đầu auto: Tẩy thuộc tính")
         Thread {
             while (auto) {
                 initAuto()
 
                 //Nhấn chọn loại bỏ thuộc tính
-                click(535, 990, 500)
+                click(356, 511, 500)
 
                 //Nhấn chọn ô
-                if (kichBan == "Ô 1") click(198, 1746, 500)
-                if (kichBan == "Ô 2") click(292, 1746, 500)
-                if (kichBan == "Ô 3") click(389, 1746, 500)
-                if (kichBan == "Ô 4") click(483, 1746, 500)
-                if (kichBan == "Ô 5") click(584, 1746, 500)
-                if (kichBan == "Ô 6") click(678, 1746, 500)
-                if (kichBan == "Ô 7") click(779, 1746, 500)
-                if (kichBan == "Ô 8") click(873, 1746, 500)
+                if (kichBan == "Ô 1") click(151, 960, 500)
+                if (kichBan == "Ô 2") click(209, 960, 500)
+                if (kichBan == "Ô 3") click(268, 960, 500)
+                if (kichBan == "Ô 4") click(327, 960, 500)
+                if (kichBan == "Ô 5") click(386, 960, 500)
+                if (kichBan == "Ô 6") click(445, 960, 500)
+                if (kichBan == "Ô 7") click(505, 960, 500)
+                if (kichBan == "Ô 8") click(563, 960, 500)
 
-                "EraseAttributeMax".screenCapture(0)
+                "taythuoctinhmax".screenCapture(0)
 
                 if (!auto) break
-                cropImage("EraseAttributeMax", 125, 1490, 817, 87)
+                cropImage("taythuoctinhmax", 109, 787, 614 - 109, 840 - 787)
 
                 if (!auto) break
                 val isTrue =
                     getTextFromImage(
-                        "EraseAttributeMax",
+                        "taythuoctinhmax",
                         listOf("Khong co thuoc tinh am de loai bo"),
                         1
                     )
@@ -412,21 +474,22 @@ class AutoADB {
                 if (!auto) break
                 if (isTrue) {
                     auto = false
+                    TelegramBotInstance.telegramBot.sendMessage("Đã tẩy thuộc tính max")
                     break
                 }
 
                 //Nhấn loại bỏ
-                click(303, 2002, 7000)
+                click(246, 1100, 3000)
 
-                "EraseAttribute".screenCapture(0)
+                "taythuoctinh".screenCapture(0)
 
                 if (!auto) break
-                cropImage("EraseAttribute", 206, 783, 663, 85)
+                cropImage("taythuoctinh", 260, 354, 458 - 260, 406 - 354)
 
                 if (!auto) break
                 val isTrue2 =
                     getTextFromImage(
-                        "EraseAttribute",
+                        "taythuoctinh",
                         listOf("Da loai bo"),
                         1
                     )
@@ -443,24 +506,36 @@ class AutoADB {
             while (auto) {
                 initAuto()
 
-                click(1005, 910, 5000)
+                //Nhan chon thuyen
+                click(597, 460, 3500)
 
-                click(190, 2265, 500)
+                //Nhan trieu hoi
+                click(153, 1197, 500)
 
-                click(377, 1672, 500)
+                //Nhan bo qua hoat canh
+                click(262, 896, 500)
 
-                click(274, 1517, 2000)
+                //Nhan 1 lan
+                click(192, 798, 1500)
 
-                "RidingAnimal".screenCapture(0)
+                "thucuoi".screenCapture(0)
 
                 if (!auto) break
-                cropImage("RidingAnimal", 98, 754, 266, 68)
+                cropImage("thucuoi", 89, 337, 254 - 89, 379 - 337)
 
                 if (!auto) break
                 val isTrue2 =
                     getTextFromImage(
-                        "RidingAnimal",
-                        listOf("LEO S", "BLUBEE S", "PINIA S", "INFERNO S"),
+                        "thucuoi",
+//                        listOf("LEO S", "BLUBEE S", "PINIA S", "INFERNO S"),
+                        listOf(
+                            "WANG WANG A",
+                            "DUN DUN A",
+                            "TUCAN A",
+                            "PYRO A",
+                            "GRIZZLY A",
+                            "GRAY A"
+                        ),
                         1
                     )
 
@@ -541,6 +616,138 @@ class AutoADB {
                         break
                     }
                 }
+            }
+        }.start()
+    }
+
+    private fun nhanDienMau(fileName: String, mau: String): Boolean {
+        val inputStream: InputStream = File("$pathData$fileName.png").inputStream()
+        val bitmap = BitmapFactory.decodeStream(inputStream)
+
+        val width = bitmap.width
+        val height = bitmap.height
+        var r = 0
+        var g = 0
+        var b = 0
+        var count = 0
+
+        val border = 4
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                if (x < border || y < border || x >= width - border || y >= height - border) {
+                    val pixel = bitmap.getPixel(x, y)
+                    r += Color.red(pixel)
+                    g += Color.green(pixel)
+                    b += Color.blue(pixel)
+                    count++
+                }
+            }
+        }
+
+        if (count == 0) return false
+
+        val avgR = r / count
+        val avgG = g / count
+        val avgB = b / count
+
+        // Đổi sang HSV để phân loại màu
+        val hsv = FloatArray(3)
+        Color.RGBToHSV(avgR, avgG, avgB, hsv)
+        val hue = hsv[0].toDouble()      // 0-360
+//        val sat = hsv[1]      // 0-1
+//        val valBrightness = hsv[2] // 0-1
+//
+//        val colorResult = when {
+//            hue in 25f..60f && sat > 0.4f -> "ORANGE"  // vàng-cam
+//            (hue in 260f..300f) && sat > 0.3f -> "PURPLE" // tím
+//            (hue in 190f..240f) && sat > 0.3f -> "BLUE"   // xanh
+//            else -> "UNKNOWN"
+//        }
+
+        //R=38,G=36,B=29,H=46.666668 vang cam
+        //R=38,G=35,B=30,H=37.5 tim
+        //R=38,G=36,B=30,H=45.0 xanh
+
+        val colorResult = when {
+            // Vàng cam
+            avgR == 38 &&
+                    avgG == 36 &&
+                    avgB == 29 &&
+                    hue == 46.66666793823242 -> "Vang cam"
+
+            // Tím
+            avgR == 38 &&
+                    avgG == 35 &&
+                    avgB == 30 &&
+                    hue == 37.5 -> "Tim"
+
+            // Xanh
+            avgR == 38 &&
+                    avgG == 36 &&
+                    avgB == 30 &&
+                    hue == 45.0 -> "Xanh"
+
+            else -> "Khong ro"
+        }
+
+        // Ghi kết quả ra file log
+        val textToAppend = "$colorResult (R=$avgR,G=$avgG,B=$avgB,H=$hue) - ${getCurrentDateTime()}"
+        BufferedWriter(FileWriter("$pathData$fileName.txt", true)).use { writer ->
+            writer.write(textToAppend)
+            writer.newLine()
+        }
+
+        return colorResult == mau
+    }
+
+    private fun test() {
+        Thread {
+            swipe(280, 776, 290, 479, 700, 500)
+//            "com.superplanet.evilhunter".openApp(500)
+//            "trangbithu".screenCapture(0)
+//            cropImage("trangbithu", 273, 456, 444 - 273, 608 - 456)
+//
+//            val auraColor = nhanDienMau("trangbithu", "Vang cam")
+        }.start()
+    }
+
+    private fun ruongTrangBiThu() {
+        auto = true
+        Thread {
+            while (auto) {
+                initAuto()
+
+                //Nhan chon kho thi tran
+                click(502, 1214, 500)
+
+                //Nhan dac biet
+                click(403, 660, 500)
+
+                //Keo
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(419, 1136, 175, 721, 500, 500)
+
+                //Nhan chon ruong
+                click(363, 730, 500)
+
+                //Nhan su dung
+                click(355, 855, 3000)
+
+                "trangbithu".screenCapture(0)
+
+                if (!auto) break
+                cropImage("trangbithu", 273, 456, 444 - 273, 608 - 456)
+
+                if (!auto) break
+                val isTrue = nhanDienMau("trangbithu", "Vang cam")
+                if (!auto) break
+                if (isTrue) backup()
             }
         }.start()
     }

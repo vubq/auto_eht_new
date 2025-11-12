@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Cho phép truy cập file APK đã tải -->
+    <external-files-path
+        name="downloaded_apk"
+        path="." />
+</paths>
