@@ -244,7 +244,7 @@ class AutoADB(private val context: Context) {
         "com.superplanet.evilhunter".openApp(12000)
 
         //Nhan touch to start
-        click(345, 1090, 25000)
+        click(345, 1090, 21000)
 
         //Nhan dong
         click(359, 972, 500)
@@ -281,14 +281,17 @@ class AutoADB(private val context: Context) {
                 if (kichBan == "Giáp" || kichBan == "Nhẫn") {
                     //Giáp or nhẫn
                     click(206, 448, 500)
+                    click(206, 448, 500)
                 }
                 if (kichBan == "Găng") {
                     //Găng
+                    click(268, 448, 500)
                     click(268, 448, 500)
                 }
                 if (kichBan == "Giày") {
                     //Giày
                     click(327, 448, 500)
+                    click(268, 448, 500)
                 }
 
                 //Nhấn chọn đồ
@@ -306,11 +309,11 @@ class AutoADB(private val context: Context) {
 //                        //Hỗn độn
 //                        click(522, 632, 500)
                         //Vực thẳm
-                        swipe(280, 776, 290, 479, 500, 500)
+                        swipe(280, 776, 290, 479, 700, 500)
                         click(187, 771, 500)
                     } else {
                         //Vực thẳm
-                        swipe(280, 776, 290, 479, 500, 500)
+                        swipe(280, 776, 290, 479, 700, 500)
                         click(187, 771, 500)
                     }
                 }
@@ -699,11 +702,12 @@ class AutoADB(private val context: Context) {
 
     private fun test() {
         Thread {
-            "com.superplanet.evilhunter".openApp(500)
-            "trangbithu".screenCapture(0)
-            cropImage("trangbithu", 273, 456, 444 - 273, 608 - 456)
-
-            val auraColor = nhanDienMau("trangbithu", "Vang cam")
+            swipe(280, 776, 290, 479, 700, 500)
+//            "com.superplanet.evilhunter".openApp(500)
+//            "trangbithu".screenCapture(0)
+//            cropImage("trangbithu", 273, 456, 444 - 273, 608 - 456)
+//
+//            val auraColor = nhanDienMau("trangbithu", "Vang cam")
         }.start()
     }
 
