@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
 
     // ✅ Hàm tải và cài đặt file APK
     private fun downloadAndInstallApk() {
-        val apkUrl = "https://github.com/vubq/auto_eht_new/raw/Redfinger-Android10/app-debug.apk"
+        val apkUrl = "https://github.com/vubq/auto_eht_new/raw/SSA51/app-debug.apk"
         val fileName = "update-app.apk"
 
         Toast.makeText(this, "Đang tải bản cập nhật...", Toast.LENGTH_SHORT).show()
