@@ -250,14 +250,16 @@ class AutoADB(private val context: Context) {
         //Mở App Backup
         "com.machiav3lli.backup".openApp(500)
 
+        swipe(422, 1457, 422, 750, 500, 500)
+
         //Nhấn sao lưu
-        click(257, 1374, 500)
+        click(292, 1445, 500)
 
         //Nhấn dữ liệu phương tiện
-        click(124, 1468, 500)
+        click(125, 1473, 500)
 
         //Nhấn OK
-        click(935, 1640, 8000)
+        click(938, 1644, 4000)
     }
 
     private fun trangBi() {
@@ -662,22 +664,22 @@ class AutoADB(private val context: Context) {
 
         val colorResult = when {
             // Vàng cam
-            avgR == 38 &&
-                    avgG == 36 &&
-                    avgB == 29 &&
-                    hue == 46.66666793823242 -> "Vang cam"
+            avgR == 42 &&
+                    avgG == 38 &&
+                    avgB == 28 &&
+                    hue == 42.85714340209961 -> "Vang cam"
 
             // Tím
-            avgR == 38 &&
+            avgR == 40 &&
                     avgG == 35 &&
-                    avgB == 30 &&
-                    hue == 37.5 -> "Tim"
+                    avgB == 31 &&
+                    hue == 26.66666603088379 -> "Tim"
 
             // Xanh
-            avgR == 38 &&
-                    avgG == 36 &&
-                    avgB == 30 &&
-                    hue == 45.0 -> "Xanh"
+            avgR == 37 &&
+                    avgG == 38 &&
+                    avgB == 32 &&
+                    hue == 70.00000762939453 -> "Xanh"
 
             else -> "Khong ro"
         }
@@ -694,17 +696,11 @@ class AutoADB(private val context: Context) {
 
     private fun test() {
         Thread {
-            "com.superplanet.evilhunter".openApp(500)
-            "trangbi".screenCapture(0)
-            cropImage("trangbi", 75, 825, 725 - 75, 915 - 825)
-
-            val comparativeWords = listOf("4 thuoc tinh co hieu luc")
-            val isTrue = getTextFromImage("trangbi", comparativeWords, 1)
+            backupEHT()
 //            "com.superplanet.evilhunter".openApp(500)
 //            "trangbithu".screenCapture(0)
-//            cropImage("trangbithu", 273, 456, 444 - 273, 608 - 456)
-//
-//            val auraColor = nhanDienMau("trangbithu", "Vang cam")
+//            cropImage("trangbithu", 414, 904, 661 - 414, 1132 - 904)
+//            val isTrue = nhanDienMau("trangbithu", "Vang cam")
         }.start()
     }
 
@@ -715,31 +711,30 @@ class AutoADB(private val context: Context) {
                 initAuto()
 
                 //Nhan chon kho thi tran
-                click(502, 1214, 500)
+                click(751, 2294, 500)
 
                 //Nhan dac biet
-                click(403, 660, 500)
+                click(674, 1356, 500)
 
                 //Keo
-                swipe(419, 1136, 175, 721, 500, 500)
-                swipe(419, 1136, 175, 721, 500, 500)
-                swipe(419, 1136, 175, 721, 500, 500)
-                swipe(419, 1136, 175, 721, 500, 500)
-                swipe(419, 1136, 175, 721, 500, 500)
-                swipe(419, 1136, 175, 721, 500, 500)
-                swipe(419, 1136, 175, 721, 500, 500)
-                swipe(419, 1136, 175, 721, 500, 500)
+                swipe(495, 2164, 495, 1437, 500, 500)
+                swipe(495, 2164, 495, 1437, 500, 500)
+                swipe(495, 2164, 495, 1437, 500, 500)
+                swipe(495, 2164, 495, 1437, 500, 500)
+                swipe(495, 2164, 495, 1437, 500, 500)
+                swipe(495, 2164, 495, 1437, 500, 500)
+                swipe(495, 2164, 495, 1437, 500, 500)
 
                 //Nhan chon ruong
-                click(363, 730, 500)
+                click(540, 1473, 500)
 
                 //Nhan su dung
-                click(355, 855, 3000)
+                click(535, 1567, 5000)
 
                 "trangbithu".screenCapture(0)
 
                 if (!auto) break
-                cropImage("trangbithu", 273, 456, 444 - 273, 608 - 456)
+                cropImage("trangbithu", 414, 904, 661 - 414, 1132 - 904)
 
                 if (!auto) break
                 val isTrue = nhanDienMau("trangbithu", "Vang cam")
@@ -807,5 +802,37 @@ class AutoADB(private val context: Context) {
                 }
             }
         }.start()
+    }
+
+    fun backupEHT() {
+        try {
+            val commands = """
+                su -c "
+                am force-stop com.superplanet.evilhunter;
+                mkdir -p /data/local/tmp/EHT_Backup;
+                cp -a /data/data/com.superplanet.evilhunter/databases /data/local/tmp/EHT_Backup/;
+                cp -a /data/data/com.superplanet.evilhunter/shared_prefs /data/local/tmp/EHT_Backup/;
+                cp -a /data/data/com.superplanet.evilhunter/files /data/local/tmp/EHT_Backup/;
+                cd /data/local/tmp; tar -cf EHT_Backup.tar EHT_Backup;
+                mv /data/local/tmp/EHT_Backup.tar /storage/emulated/0/AutoEHT/"
+            """.trimIndent()
+            Runtime.getRuntime().exec(arrayOf("sh", "-c", commands)).waitFor()
+            TelegramBotInstance.telegramBot.sendMessage("Backup EHT hoàn tất")
+        } catch (e: Exception) {
+            TelegramBotInstance.telegramBot.sendMessage("Lỗi backup EHT: ${e.message}")
+        }
+    }
+
+    fun restoreEHT() {
+        try {
+            val backupFile = "$pathData/EHT_Backup/eht_backup.tar"
+            val command = """
+                    su -c "tar -xf $backupFile -C /"
+                """.trimIndent()
+            Runtime.getRuntime().exec(arrayOf("sh", "-c", command)).waitFor()
+            TelegramBotInstance.telegramBot.sendMessage("Restore EHT hoàn tất")
+        } catch (e: Exception) {
+            TelegramBotInstance.telegramBot.sendMessage("Lỗi restore EHT: ${e.message}")
+        }
     }
 }
