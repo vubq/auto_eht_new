@@ -702,23 +702,16 @@ class AutoADB {
             val src = "/data/data/com.superplanet.evilhunter"
             val dst = "/storage/emulated/0/AutoEHT/backup_evilhunter.tar"
 
-            // Đảm bảo thư mục
-            Shell.cmd("mkdir -p /storage/emulated/0/AutoEHT").exec()
-
-            val cmd = """
+            mmShell.newJob().add("""
+            mkdir -p /storage/emulated/0/AutoEHT
             cd /data/data
-            tar -cf "$dst" "com.superplanet.evilhunter"
-        """.trimIndent()
+            tar -cpf "$dst" "com.superplanet.evilhunter"
+        """.trimIndent()).exec()
 
-            val result = mmShell.newJob().add(cmd).exec()
-
-            if (!result.isSuccess) {
-                Log.e("AutoADB", "Backup FAILED: exitCode = ${result.code}")
-            } else {
-                Log.i("AutoADB", "Backup completed: $dst")
-            }
+            Log.i("AutoADB", "Backup done: $dst")
         }
     }
+
 
     private suspend fun restoreAppData() {
         withContext(Dispatchers.IO) {
@@ -726,26 +719,42 @@ class AutoADB {
             val src = "/storage/emulated/0/AutoEHT/backup_evilhunter.tar"
             val dst = "/data/data"
 
-            // Dừng app trước khi restore
-            mmShell.newJob().add("am force-stop com.superplanet.evilhunter").exec()
+            // Tắt app
+            mmShell.newJob()
+                .add("am force-stop com.superplanet.evilhunter")
+                .exec()
 
-            val cmd = """
-            cd "$dst"
+            // Lấy UID của app từ hệ thống
+            val idResult = mmShell.newJob()
+                .add("stat -c %u /data/data/com.superplanet.evilhunter")
+                .exec()
+
+            val uid = idResult.out.firstOrNull()?.trim() ?: "0"
+            val gid = uid   // gid luôn == uid
+
+            Log.i("AutoADB", "App UID: $uid")
+
+            // Restore
+            val result = mmShell.newJob().add("""
+            cd $dst
             rm -rf com.superplanet.evilhunter
-            tar -xf "$src"
-            chown -R u0_a349:u0_a349 com.superplanet.evilhunter
-        """.trimIndent()
+            tar -xpf "$src"
 
-            val result = mmShell.newJob().add(cmd).exec()
+            # Fix owner
+            chown -R $uid:$gid com.superplanet.evilhunter
 
-            if (!result.isSuccess) {
-                Log.e("AutoADB", "Restore FAILED: exitCode = ${result.code}")
-            } else {
-                Log.i("AutoADB", "Restore completed successfully")
-            }
+            # Fix permission (cực kỳ quan trọng)
+            chmod 700 com.superplanet.evilhunter
+            find com.superplanet.evilhunter -type d -exec chmod 700 {} \;
+            find com.superplanet.evilhunter -type f -exec chmod 600 {} \;
+
+            # Sửa SELinux context (quan trọng nhất)
+            restorecon -R com.superplanet.evilhunter
+        """.trimIndent()).exec()
+
+            Log.i("AutoADB", "Restore DONE, code=${result.code}")
         }
     }
-
 
     /**
      * Cleanup khi không còn sử dụng
