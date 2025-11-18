@@ -1,150 +1,189 @@
 package com.example.autovubq
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Color
+import android.util.Log
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.*
 import kotlinx.coroutines.tasks.await
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
-import java.io.FileWriter
-import java.io.InputStream
+import java.io.*
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
-class AutoADB(private val context: Context) {
+class AutoADB {
+    companion object {
+        private const val TAG = "AutoADB"
+        private const val PATH_DATA = "/storage/emulated/0/AutoEHT/"
+    }
 
-    private var pathData: String = "/storage/emulated/0/AutoEHT/"
-    private var auto = false
-    private var loaiAuto = "Trang bị"
-    private var kichBan = "Giáp"
-    private var timKiemCaThietLapB = true
-
+    private val isRunning = AtomicBoolean(false)
     private var job: Job? = null
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
+    // Cache text recognizer
+    private val textRecognizer by lazy {
+        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    }
+
+    /**
+     * Bắt đầu auto với các tham số
+     */
     fun start(loaiAuto: String, kichBan: String, timKiemCaThietLapB: Boolean) {
-        if (auto) return
-        this.loaiAuto = loaiAuto
-        this.kichBan = kichBan
-        this.timKiemCaThietLapB = timKiemCaThietLapB
-        auto = true
+        if (isRunning.get()) {
+            Log.w(TAG, "Auto đã đang chạy")
+            return
+        }
 
-        job = CoroutineScope(Dispatchers.Default).launch {
-            when (loaiAuto) {
-                "Trang bị" -> trangBi()
-                "Cường hóa" -> cuongHoa()
-                "Thú cưỡi" -> thuCuoi()
-                "Tẩy thuộc tính" -> tayThuocTinh()
-                "Rương trang bị thú" -> ruongTrangBiThu()
-                "Test" -> test()
-                else -> {}
+        // Kiểm tra root access
+        if (Shell.isAppGrantedRoot() != true) {
+            Log.e(TAG, "Không có quyền root!")
+            return
+        }
+
+        isRunning.set(true)
+
+        job = scope.launch {
+            try {
+                when (loaiAuto) {
+                    "Trang bị" -> equip(kichBan, timKiemCaThietLapB)
+                    "Cường hóa" -> strengthen(kichBan)
+                    "Tẩy thuộc tính" -> eraseAttribute(kichBan)
+                    "Rương boss" -> bossChest()
+                    "Thú cưỡi" -> ridingAnimal()
+                    "Tính cách" -> character()
+                    "Backup" -> backupAppData()
+                    "Restore" -> restoreAppData()
+                    else -> Log.w(TAG, "Loại auto không hợp lệ: $loaiAuto")
+                }
+            } catch (e: CancellationException) {
+                Log.i(TAG, "Auto đã bị dừng")
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi khi chạy auto: ${e.message}", e)
+            } finally {
+                isRunning.set(false)
             }
         }
     }
 
+    /**
+     * Dừng auto
+     */
     fun stop() {
-        auto = false
+        isRunning.set(false)
         job?.cancel()
+        Log.i(TAG, "Đã dừng auto")
     }
 
-    fun moGame() {
-        job = CoroutineScope(Dispatchers.Default).launch {
-            auto = true
-            Thread {
-                while (auto) {
-                    "com.superplanet.evilhunter".openApp(0)
-                    auto = false
-                }
-            }.start()
-        }
-        job?.cancel()
-    }
-
-    fun dongGame() {
-        job = CoroutineScope(Dispatchers.Default).launch {
-            auto = true
-            Thread {
-                while (auto) {
-                    println("dosngasdasdasfd ")
-                    "com.superplanet.evilhunter".closeApp(0)
-                    auto = false
-                }
-            }.start()
-        }
-        job?.cancel()
-    }
-
-    fun docFile(fileName: String): String {
-        val file = File("$pathData$fileName.txt")
-        if (!file.exists()) {
-            return "Không có file"
-        } else {
-            if (file.readText().isEmpty()) {
-                return "Chưa có dữ liệu"
+    /**
+     * Đọc file từ storage
+     */
+    fun readFile(fileName: String): String {
+        return try {
+            val file = File("$PATH_DATA$fileName.txt")
+            if (!file.exists()) {
+                "Không có file!"
+            } else {
+                file.readText()
             }
-            return file.readText()
+        } catch (e: Exception) {
+            Log.e(TAG, "Lỗi đọc file: ${e.message}", e)
+            "Lỗi đọc file: ${e.message}"
         }
     }
 
-    fun xoaFile(fileName: String): String {
-        val file = File("$pathData$fileName.txt")
-        if (!file.exists()) {
-            return "Không có file"
-        } else {
-            file.writeText("")
-            return "Đã xóa dữ liệu"
+    /**
+     * Xóa nội dung file
+     */
+    fun clearFile(fileName: String): String {
+        return try {
+            val file = File("$PATH_DATA$fileName.txt")
+            if (!file.exists()) {
+                "Không có file!"
+            } else {
+                file.writeText("")
+                "Đã clear file!"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Lỗi clear file: ${e.message}", e)
+            "Lỗi clear file: ${e.message}"
         }
     }
 
-    private fun String.adbExecution(delay: Long) {
-        if (!auto) return
-        val process = Runtime.getRuntime().exec(arrayOf("su", "-c", this))
-        process.waitFor()
-        Thread.sleep(delay)
+    /**
+     * Thực thi lệnh shell với libsu
+     */
+    private suspend fun executeShell(command: String, delay: Long = 0): Shell.Result {
+        return withContext(Dispatchers.IO) {
+            if (!isRunning.get()) {
+                throw CancellationException("Auto đã bị dừng")
+            }
+
+            val result = Shell.cmd(command).exec()
+
+            if (!result.isSuccess) {
+                Log.w(TAG, "Command failed: $command, code: ${result.code}")
+            }
+
+            if (delay > 0) {
+                delay(delay)
+            }
+
+            result
+        }
     }
 
-    private fun String.openApp(delay: Long) {
-        "monkey -p $this -c android.intent.category.LAUNCHER 1".adbExecution(delay)
+    /**
+     * Mở ứng dụng
+     */
+    private suspend fun openApp(packageName: String, delay: Long = 500) {
+        executeShell("monkey -p $packageName -c android.intent.category.LAUNCHER 1", delay)
     }
 
-    private fun String.closeApp(delay: Long) {
-        "am force-stop $this".adbExecution(delay)
+    /**
+     * Click tại tọa độ
+     */
+    private suspend fun click(x: Int, y: Int, delay: Long = 0) {
+        executeShell("input tap $x $y", delay)
     }
 
-    private fun click(x: Int, y: Int, delay: Long) {
-        "input tap $x $y".adbExecution(delay)
+    /**
+     * Swipe từ điểm này sang điểm khác
+     */
+    private suspend fun swipe(x1: Int, y1: Int, x2: Int, y2: Int, speed: Int = 500, delay: Long = 0) {
+        executeShell("input swipe $x1 $y1 $x2 $y2 $speed", delay)
     }
 
-    private fun swipe(x1: Int, y1: Int, x2: Int, y2: Int, speed: Int = 500, delay: Long) {
-        "input swipe $x1 $y1 $x2 $y2 $speed".adbExecution(delay)
+    /**
+     * Chụp màn hình
+     */
+    private suspend fun screenCapture(fileName: String, delay: Long = 0) {
+        val filePath = "$PATH_DATA$fileName.png"
+        executeShell("screencap -p $filePath", delay)
     }
 
-    private fun String.screenCapture(delay: Long) {
-        "screencap -p $pathData$this.png".adbExecution(delay)
+    /**
+     * Điều chỉnh độ sáng màn hình
+     */
+    private suspend fun adjustBrightness(brightness: Int, delay: Long = 0) {
+        executeShell("settings put system screen_brightness $brightness", delay)
     }
 
-    private fun adjustBrightness(i: Int, delay: Long) {
-        "shell settings put system screen_brightness $i".adbExecution(delay)
-    }
-
+    /**
+     * Lấy thời gian hiện tại
+     */
     private fun getCurrentDateTime(): String {
-        val calendar = Calendar.getInstance()
         val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        return formatter.format(calendar.time)
+        return formatter.format(Date())
     }
 
-    private fun unicode(text: String): String {
+    /**
+     * Chuyển đổi Unicode tiếng Việt
+     */
+    private fun normalizeVietnamese(text: String): String {
         val diacriticMap = mapOf(
             'á' to 'a', 'à' to 'a', 'ả' to 'a', 'ã' to 'a', 'ạ' to 'a',
             'ă' to 'a', 'ắ' to 'a', 'ằ' to 'a', 'ẳ' to 'a', 'ẵ' to 'a', 'ặ' to 'a',
@@ -163,676 +202,557 @@ class AutoADB(private val context: Context) {
         return text.map { diacriticMap[it] ?: it }.joinToString("")
     }
 
-    private suspend fun recognizeText(image: String): String {
-        val inputStream: InputStream = File(image).inputStream()
-        val bitmap = BitmapFactory.decodeStream(inputStream)
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        val visionText = recognizer.process(InputImage.fromBitmap(bitmap, 0)).await()
-        return unicode(visionText.text)
+    /**
+     * Nhận dạng text từ ảnh
+     */
+    private suspend fun recognizeText(imagePath: String): String {
+        return withContext(Dispatchers.Default) {
+            try {
+                val file = File(imagePath)
+                if (!file.exists()) {
+                    Log.w(TAG, "File không tồn tại: $imagePath")
+                    return@withContext ""
+                }
+
+                val bitmap = BitmapFactory.decodeFile(imagePath)
+                    ?: return@withContext ""
+
+                val image = InputImage.fromBitmap(bitmap, 0)
+                val visionText = textRecognizer.process(image).await()
+
+                normalizeVietnamese(visionText.text)
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi nhận dạng text: ${e.message}", e)
+                ""
+            }
+        }
     }
 
-    private fun getTextFromImage(
+    /**
+     * Kiểm tra text từ ảnh có chứa các từ khóa
+     */
+    private suspend fun checkTextInImage(
         fileName: String,
-        comparativeWords: List<String>,
-        bout: Int,
-    ): Boolean = runBlocking {
-        val text: String = recognizeText("$pathData$fileName.png")
+        keywords: List<String>,
+        attempt: Int
+    ): Boolean {
+        return withContext(Dispatchers.Default) {
+            try {
+                val imagePath = "$PATH_DATA$fileName.png"
+                val text = recognizeText(imagePath)
 
-        if (text.isEmpty()) return@runBlocking false
-
-        val exist = comparativeWords.any { text.contains(it, ignoreCase = true) }
-
-//        telegramBot.sendMessage("$text - $exist")
-
-        val textToAppend = "Lần $bout: $text - $exist" + " - " + getCurrentDateTime()
-
-        BufferedWriter(FileWriter("$pathData$fileName.txt", true)).use { writer ->
-            writer.write(textToAppend)
-            writer.newLine()
-        }
-
-        return@runBlocking exist
-    }
-
-    private fun cropImage(fileName: String, x: Int, y: Int, width: Int, height: Int) {
-        try {
-            val file = File(pathData, "$fileName.png")
-
-            if (!file.exists()) {
-                throw FileNotFoundException("File không tồn tại: ${file.absolutePath}")
-            }
-
-            val bitmap = file.inputStream().use { BitmapFactory.decodeStream(it) }
-                ?: throw IllegalArgumentException("Không thể đọc bitmap từ file")
-
-            val safeWidth = minOf(width, bitmap.width - x)
-            val safeHeight = minOf(height, bitmap.height - y)
-            if (safeWidth <= 0 || safeHeight <= 0) throw IllegalArgumentException("Kích thước crop không hợp lệ")
-
-            val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, safeWidth, safeHeight)
-
-            FileOutputStream(file).use {
-                croppedBitmap.compress(
-                    Bitmap.CompressFormat.PNG,
-                    100,
-                    it
-                )
-            }
-
-        } catch (e: Exception) {
-            TelegramBotInstance.telegramBot.sendMessage(e.message.toString())
-        }
-    }
-
-    private fun initAuto() {
-        //Mở App Backup
-        "com.machiav3lli.backup".openApp(500)
-
-        swipe(422, 1457, 422, 750, 500, 500)
-
-        //Nhấn khôi phục
-        click(841, 1958, 500)
-
-        //Nhấn OK
-        click(942, 1517, 4000)
-
-        //Mở EHT
-        "com.superplanet.evilhunter".openApp(12000)
-
-        //Nhấn Touch To Start
-        click(505, 1995, 26000)
-
-        //Nhấn đóng
-        click(530, 1800, 500)
-    }
-
-    private fun backup() {
-        //Mở App Backup
-        "com.machiav3lli.backup".openApp(500)
-
-        swipe(422, 1457, 422, 750, 500, 500)
-
-        //Nhấn sao lưu
-        click(292, 1445, 500)
-
-        //Nhấn dữ liệu phương tiện
-        click(125, 1473, 500)
-
-        //Nhấn OK
-        click(938, 1644, 4000)
-    }
-
-    private fun trangBi() {
-        auto = true
-        TelegramBotInstance.telegramBot.sendMessage("Bắt đầu auto: Trang bị")
-        Thread {
-            while (auto) {
-                initAuto()
-
-                //Nhấn chọn lò rèn hoặc kim hoàn
-                if (kichBan == "Dây chuyền" || kichBan == "Nhẫn") {
-                    //Kim hoàn
-                    click(735, 1486, 500)
-                } else {
-                    //Lò rèn
-                    click(432, 1361, 500)
+                if (text.isEmpty()) {
+                    Log.w(TAG, "Không nhận dạng được text từ ảnh")
+                    return@withContext false
                 }
 
-                //Nhấn chọn loại đồ
-                if (kichBan == "Giáp" || kichBan == "Nhẫn") {
-                    //Giáp or nhẫn
-                    click(283, 876, 500)
-                }
-                if (kichBan == "Găng") {
-                    //Găng
-                    click(381, 876, 500)
-                }
-                if (kichBan == "Giày") {
-                    //Giày
-                    click(482, 876, 500)
+                val found = keywords.any { keyword ->
+                    text.contains(keyword, ignoreCase = true)
                 }
 
-                //Nhấn chọn đồ
-                if (kichBan == "Vũ khí") {
-                    swipe(390, 1510, 390, 985, 500, 0)
-                    swipe(390, 1510, 390, 985, 500, 0)
-                    swipe(390, 1510, 390, 985, 500, 0)
-                    swipe(390, 1510, 390, 985, 500, 500)
+                // Ghi log
+                val logText = "Lần $attempt: $text - $found - ${getCurrentDateTime()}"
+                Log.d(TAG, logText)
 
-                    //Vũ khí
-                    click(527, 1471, 500)
-                } else {
-                    //Các đồ khác
-                    if (kichBan == "Dây chuyền" || kichBan == "Nhẫn") {
-                        swipe(422, 1457, 422, 750, 500, 500)
-                        click(270, 1425, 500)
-                    } else {
-                        swipe(422, 1457, 422, 750, 500, 500)
-                        click(270, 1425, 500)
+                // Lưu vào file
+                withContext(Dispatchers.IO) {
+                    try {
+                        val logFile = File("$PATH_DATA$fileName.txt")
+                        logFile.parentFile?.mkdirs()
+                        logFile.appendText("$logText\n")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Lỗi ghi log: ${e.message}", e)
                     }
                 }
 
-                //Kéo đầy thanh
+                found
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi kiểm tra text: ${e.message}", e)
+                false
+            }
+        }
+    }
+
+    /**
+     * Cắt ảnh
+     */
+    private suspend fun cropImage(fileName: String, x: Int, y: Int, width: Int, height: Int) {
+        withContext(Dispatchers.IO) {
+            try {
+                val filePath = "$PATH_DATA$fileName.png"
+                val file = File(filePath)
+
+                if (!file.exists()) {
+                    Log.w(TAG, "File không tồn tại: $filePath")
+                    return@withContext
+                }
+
+                val bitmap = BitmapFactory.decodeFile(filePath)
+                    ?: return@withContext
+
+                // Kiểm tra bounds
+                if (x < 0 || y < 0 || x + width > bitmap.width || y + height > bitmap.height) {
+                    Log.w(TAG, "Tọa độ crop không hợp lệ")
+                    return@withContext
+                }
+
+                val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, width, height)
+
+                FileOutputStream(file).use { output ->
+                    croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
+                    output.flush()
+                }
+
+                if (bitmap != croppedBitmap) {
+                    bitmap.recycle()
+                }
+                croppedBitmap.recycle()
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi crop ảnh: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Test chụp màn hình
+     */
+    fun screenCapture() {
+        scope.launch {
+            try {
+                screenCapture("test", 0)
+                Log.i(TAG, "Đã chụp màn hình test")
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi chụp màn hình: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Khởi tạo app
+     */
+    private suspend fun initAuto() {
+        // Mở App Backup
+        openApp("com.machiav3lli.backup", 500)
+
+        // Nhấn khôi phục
+        click(841, 1958, 500)
+
+        // Nhấn OK
+        click(942, 1517, 5000)
+
+        // Mở EHT
+        openApp("com.superplanet.evilhunter", 13000)
+
+        // Nhấn Touch To Start
+        click(505, 1995, 29000)
+
+        // Nhấn đóng
+        click(530, 1800, 500)
+    }
+
+    /**
+     * Backup dữ liệu
+     */
+    private suspend fun backup() {
+        // Mở App Backup
+        openApp("com.machiav3lli.backup", 500)
+
+        // Nhấn sao lưu
+        click(257, 1374, 500)
+
+        // Nhấn dữ liệu phương tiện
+        click(124, 1468, 500)
+
+        // Nhấn OK
+        click(935, 1640, 8000)
+    }
+
+    /**
+     * Auto trang bị
+     */
+    private suspend fun equip(kichBan: String, timKiemCaThietLapB: Boolean) {
+        while (isRunning.get()) {
+            try {
+                initAuto()
+
+                // Nhấn chọn lò rèn hoặc kim hoàn
+                when (kichBan) {
+                    "Dây chuyền", "Nhẫn" -> click(735, 1486, 500) // Kim hoàn
+                    else -> click(432, 1361, 500) // Lò rèn
+                }
+
+                // Nhấn chọn loại đồ
+                when (kichBan) {
+                    "Giáp", "Nhẫn" -> click(286, 929, 500)
+                    "Găng" -> click(387, 933, 500)
+                    "Giày" -> click(491, 929, 500)
+                }
+
+                // Nhấn chọn đồ
+                if (kichBan == "Vũ khí") {
+                    repeat(3) { swipe(390, 1510, 390, 985, 500, 0) }
+                    swipe(390, 1510, 390, 985, 500, 500)
+                    click(527, 1471, 500)
+                } else {
+                    swipe(390, 1510, 390, 985, 500, 500)
+                    click(248, 1465, 500)
+                }
+
+                // Kéo đầy thanh
                 swipe(241, 1786, 965, 1786, 500, 500)
 
-                //Nhấn điều chế
-                click(364, 1977, 5500)
+                // Nhấn điều chế
+                click(364, 1977, 7000)
 
-                //Nhấn tìm thuộc tính
-                click(522, 856, 500)
+                // Nhấn tìm thuộc tính
+                click(520, 910, 500)
 
-                //Nhấn thiết lập sẵn A
-                click(205, 460, 500)
+                // Nhấn thiết lập sẵn A
+                click(183, 527, 500)
 
-                //Nhấn tìm kiếm
-                click(335, 2045, 1500)
+                // Nhấn tìm kiếm
+                click(335, 2045, 2000)
 
-                "trangbi".screenCapture(0)
+                // Chụp và kiểm tra
+                screenCapture("Equip", 0)
+                cropImage("Equip", 85, 865, 623, 107)
 
-                if (!auto) break
-                cropImage("trangbi", 75, 825, 725 - 75, 915 - 825)
-
-                if (!auto) break
-                val comparativeWords = listOf("4 thuoc tinh co hieu luc")
-                val isTrue = getTextFromImage("trangbi", comparativeWords, 1)
-
-                if (!auto) break
-                if (isTrue) {
-                    auto = false
-                    TelegramBotInstance.telegramBot.sendMessage("Đã tìm thấy trang bị [Thiết lập A]")
+                val keywords = listOf("4 thuoc tinh co hieu luc")
+                if (checkTextInImage("Equip", keywords, 1)) {
+                    Log.i(TAG, "Đã tìm thấy trang bị phù hợp (A)")
                     break
                 }
 
                 if (!timKiemCaThietLapB) continue
 
-                //Nhấn xác nhận
+                // Kiểm tra thiết lập B
                 click(527, 2084, 500)
+                click(520, 910, 500)
+                click(455, 530, 500)
+                click(335, 2045, 2000)
 
-                //Nhấn tìm thuộc tính
-                click(522, 856, 500)
+                screenCapture("Equip", 0)
+                cropImage("Equip", 85, 865, 623, 107)
 
-                //Nhấn thiết lập sẵn B
-                click(445, 460, 500)
-
-                //Nhấn tìm kiếm
-                click(333, 2023, 2000)
-
-                "trangbi".screenCapture(0)
-
-                if (!auto) break
-                cropImage("trangbi", 75, 825, 725 - 75, 915 - 825)
-
-                if (!auto) break
-                val isTrue2 = getTextFromImage("trangbi", comparativeWords, 2)
-
-                if (!auto) break
-                if (isTrue2) {
-                    auto = false
-                    TelegramBotInstance.telegramBot.sendMessage("Đã tìm thấy trang bị [Thiết lập B]")
+                if (checkTextInImage("Equip", keywords, 2)) {
+                    Log.i(TAG, "Đã tìm thấy trang bị phù hợp (B)")
                     break
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi trong equip: ${e.message}", e)
+                delay(1000)
             }
-        }.start()
+        }
     }
 
-    private fun cuongHoa() {
-        auto = true
-        TelegramBotInstance.telegramBot.sendMessage("Bắt đầu auto: Cường hóa")
-        Thread {
-            while (auto) {
+    /**
+     * Auto cường hóa
+     */
+    private suspend fun strengthen(kichBan: String) {
+        while (isRunning.get()) {
+            try {
                 initAuto()
 
-                //Nhấn chọn cường hóa thần
-                click(356, 511, 500)
+                // Nhấn chọn cường hóa thần
+                click(535, 990, 500)
 
-                //Nhấn chọn ô
-                if (kichBan == "Ô 1") click(151, 960, 500)
-                if (kichBan == "Ô 2") click(209, 960, 500)
-                if (kichBan == "Ô 3") click(268, 960, 500)
-                if (kichBan == "Ô 4") click(327, 960, 500)
-                if (kichBan == "Ô 5") click(386, 960, 500)
-                if (kichBan == "Ô 6") click(445, 960, 500)
-                if (kichBan == "Ô 7") click(505, 960, 500)
-                if (kichBan == "Ô 8") click(563, 960, 500)
+                // Nhấn chọn ô
+                val positions = mapOf(
+                    "Ô 1" to Pair(198, 1746),
+                    "Ô 2" to Pair(292, 1746),
+                    "Ô 3" to Pair(389, 1746),
+                    "Ô 4" to Pair(483, 1746),
+                    "Ô 5" to Pair(584, 1746),
+                    "Ô 6" to Pair(678, 1746),
+                    "Ô 7" to Pair(779, 1746),
+                    "Ô 8" to Pair(873, 1746)
+                )
 
-                "cuonghoamax".screenCapture(0)
+                positions[kichBan]?.let { (x, y) -> click(x, y, 500) }
 
-                if (!auto) break
-                cropImage("cuonghoamax", 101, 657, 612 - 101, 705 - 657)
+                // Kiểm tra đã max chưa
+                screenCapture("StrengthenMax", 0)
+                cropImage("StrengthenMax", 109, 1262, 966 - 109, 1360 - 1262)
 
-                if (!auto) break
-                val isTrue =
-                    getTextFromImage(
-                        "cuonghoamax",
-                        listOf("Khong the cuong hoa than them nua"),
-                        1
-                    )
-
-                if (!auto) break
-                if (isTrue) {
-                    auto = false
-                    TelegramBotInstance.telegramBot.sendMessage("Đã cường hóa max")
+                if (checkTextInImage("StrengthenMax", listOf("Khong the cuong hoa than them nua"), 1)) {
+                    Log.i(TAG, "Đã cường hóa max")
                     break
                 }
 
-                //Nhấn cường hóa
-                click(250, 1123, 3000)
+                // Nhấn cường hóa
+                click(303, 2002, 7000)
 
-                "cuonghoa".screenCapture(0)
+                // Kiểm tra thành công
+                screenCapture("Strengthen", 0)
+                cropImage("Strengthen", 186, 762, 881 - 186, 876 - 762)
 
-                if (!auto) break
-                cropImage("cuonghoa", 153, 354, 565 - 153, 407 - 354)
-
-                if (!auto) break
-                val isTrue2 = getTextFromImage("cuonghoa", listOf("Cuong Hoa Thanh Cong"), 1)
-
-                if (!auto) break
-                if (isTrue2) backup()
+                if (checkTextInImage("Strengthen", listOf("Cuong Hoa Thanh Cong"), 1)) {
+                    backup()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi trong strengthen: ${e.message}", e)
+                delay(1000)
             }
-        }.start()
+        }
     }
 
-    private fun tayThuocTinh() {
-        auto = true
-        TelegramBotInstance.telegramBot.sendMessage("Bắt đầu auto: Tẩy thuộc tính")
-        Thread {
-            while (auto) {
+    /**
+     * Auto tẩy thuộc tính
+     */
+    private suspend fun eraseAttribute(kichBan: String) {
+        while (isRunning.get()) {
+            try {
                 initAuto()
 
-                //Nhấn chọn loại bỏ thuộc tính
-                click(356, 511, 500)
+                // Nhấn chọn loại bỏ thuộc tính
+                click(535, 990, 500)
 
-                //Nhấn chọn ô
-                if (kichBan == "Ô 1") click(151, 960, 500)
-                if (kichBan == "Ô 2") click(209, 960, 500)
-                if (kichBan == "Ô 3") click(268, 960, 500)
-                if (kichBan == "Ô 4") click(327, 960, 500)
-                if (kichBan == "Ô 5") click(386, 960, 500)
-                if (kichBan == "Ô 6") click(445, 960, 500)
-                if (kichBan == "Ô 7") click(505, 960, 500)
-                if (kichBan == "Ô 8") click(563, 960, 500)
+                // Nhấn chọn ô
+                val positions = mapOf(
+                    "Ô 1" to Pair(198, 1746),
+                    "Ô 2" to Pair(292, 1746),
+                    "Ô 3" to Pair(389, 1746),
+                    "Ô 4" to Pair(483, 1746),
+                    "Ô 5" to Pair(584, 1746),
+                    "Ô 6" to Pair(678, 1746),
+                    "Ô 7" to Pair(779, 1746),
+                    "Ô 8" to Pair(873, 1746)
+                )
 
-                "taythuoctinhmax".screenCapture(0)
+                positions[kichBan]?.let { (x, y) -> click(x, y, 500) }
 
-                if (!auto) break
-                cropImage("taythuoctinhmax", 109, 787, 614 - 109, 840 - 787)
+                // Kiểm tra còn thuộc tính âm không
+                screenCapture("EraseAttributeMax", 0)
+                cropImage("EraseAttributeMax", 125, 1490, 817, 87)
 
-                if (!auto) break
-                val isTrue =
-                    getTextFromImage(
-                        "taythuoctinhmax",
-                        listOf("Khong co thuoc tinh am de loai bo"),
-                        1
-                    )
-
-                if (!auto) break
-                if (isTrue) {
-                    auto = false
-                    TelegramBotInstance.telegramBot.sendMessage("Đã tẩy thuộc tính max")
+                if (checkTextInImage("EraseAttributeMax", listOf("Khong co thuoc tinh am de loai bo"), 1)) {
+                    Log.i(TAG, "Không còn thuộc tính âm")
                     break
                 }
 
-                //Nhấn loại bỏ
-                click(246, 1100, 3000)
+                // Nhấn loại bỏ
+                click(303, 2002, 7000)
 
-                "taythuoctinh".screenCapture(0)
+                // Kiểm tra thành công
+                screenCapture("EraseAttribute", 0)
+                cropImage("EraseAttribute", 206, 783, 663, 85)
 
-                if (!auto) break
-                cropImage("taythuoctinh", 260, 354, 458 - 260, 406 - 354)
-
-                if (!auto) break
-                val isTrue2 =
-                    getTextFromImage(
-                        "taythuoctinh",
-                        listOf("Da loai bo"),
-                        1
-                    )
-
-                if (!auto) break
-                if (isTrue2) backup()
+                if (checkTextInImage("EraseAttribute", listOf("Da loai bo"), 1)) {
+                    backup()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi trong eraseAttribute: ${e.message}", e)
+                delay(1000)
             }
-        }.start()
+        }
     }
 
-    private fun thuCuoi() {
-        auto = true
-        Thread {
-            while (auto) {
+    /**
+     * Auto thú cưỡi
+     */
+    private suspend fun ridingAnimal() {
+        while (isRunning.get()) {
+            try {
                 initAuto()
 
-                //Nhan chon thuyen
-                click(597, 460, 3500)
+                click(1005, 910, 5000)
+                click(190, 2265, 500)
+                click(377, 1672, 500)
+                click(274, 1517, 2000)
 
-                //Nhan trieu hoi
-                click(153, 1197, 500)
+                screenCapture("RidingAnimal", 0)
+                cropImage("RidingAnimal", 98, 754, 266, 68)
 
-                //Nhan bo qua hoat canh
-                click(262, 896, 500)
-
-                //Nhan 1 lan
-                click(192, 798, 1500)
-
-                "thucuoi".screenCapture(0)
-
-                if (!auto) break
-                cropImage("thucuoi", 89, 337, 254 - 89, 379 - 337)
-
-                if (!auto) break
-                val isTrue2 =
-                    getTextFromImage(
-                        "thucuoi",
-//                        listOf("LEO S", "BLUBEE S", "PINIA S", "INFERNO S"),
-                        listOf(
-                            "WANG WANG A",
-                            "DUN DUN A",
-                            "TUCAN A",
-                            "PYRO A",
-                            "GRIZZLY A",
-                            "GRAY A"
-                        ),
-                        1
-                    )
-
-                if (!auto) break
-                if (isTrue2) backup()
+                if (checkTextInImage("RidingAnimal", listOf("LEO S", "BLUBEE S", "PINIA S", "INFERNO S"), 1)) {
+                    backup()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi trong ridingAnimal: ${e.message}", e)
+                delay(1000)
             }
-        }.start()
+        }
     }
 
-    private fun ruongBoss() {
-        auto = true
-        Thread {
-            while (auto) {
+    /**
+     * Auto rương boss
+     */
+    private suspend fun bossChest() {
+        while (isRunning.get()) {
+            try {
                 initAuto()
 
-                //Nhấn mở rương
+                // Nhấn mở rương
                 click(751, 2315, 500)
 
-                //Nhấn tab đồ đặc biệt
+                // Nhấn tab đồ đặc biệt
                 click(666, 1368, 500)
 
-                //Kéo
-                swipe(430, 2181, 430, 1429, 500, 500)
-                swipe(430, 2181, 430, 1429, 500, 500)
-                swipe(430, 2181, 430, 1429, 500, 500)
-                swipe(430, 2181, 430, 1429, 500, 500)
+                // Kéo xuống
+                repeat(4) {
+                    swipe(430, 2181, 430, 1429, 500, 500)
+                }
 
-                //Nhấn vào rương boss
+                // Nhấn vào rương boss
                 click(938, 1701, 500)
 
-                //Nhấn sử dụng
-//                click(540, 1640, 7000)
+                // Nhấn sử dụng
                 click(277, 1640, 7000)
 
-                //Chụp ảnh
-                "BossCheat".screenCapture(0)
+                // Kiểm tra item đầu tiên
+                screenCapture("BossChest", 0)
+                cropImage("BossChest", 389, 1197, 682 - 389, 1299 - 1197)
 
-                //Cắt ảnh
-                if (!auto) break
-                cropImage("BossCheat", 389, 1197, 682 - 389, 1299 - 1197)
-
-                if (!auto) break
-                val isTrue =
-                    getTextFromImage(
-                        "BossCheat",
-                        listOf("Tinh Chat Vua"),
-                        1
-                    )
-
-                if (!auto) break
-                if (!isTrue) {
-                    auto = false
+                if (!checkTextInImage("BossChest", listOf("Tinh Chat Vua"), 1)) {
+                    Log.i(TAG, "Không phải Tinh Chất Vua")
                     break
                 }
 
-                for (i in 1..11) {
-                    //Item tiếp theo
+                // Kiểm tra 11 item tiếp theo
+                repeat(11) {
                     click(877, 1127, 2000)
 
-                    //Chụp ảnh
-                    "BossCheat".screenCapture(0)
+                    screenCapture("BossChest", 0)
+                    cropImage("BossChest", 389, 1197, 682 - 389, 1299 - 1197)
 
-                    //Cắt ảnh
-                    if (!auto) break
-                    cropImage("BossCheat", 389, 1197, 682 - 389, 1299 - 1197)
-
-                    if (!auto) break
-                    val isTrue2 =
-                        getTextFromImage(
-                            "BossCheat",
-                            listOf("Tinh Chat Vua"),
-                            1
-                        )
-
-                    if (!auto) break
-                    if (!isTrue2) {
-                        auto = false
-                        break
-                    }
+//                    if (!checkTextInImage("BossChest", listOf("Tinh Chat Vua"), 1)) {
+//                        Log.i(TAG, "Tìm thấy item khác Tinh Chất Vua")
+//                        break
+//                    }
                 }
-            }
-        }.start()
-    }
-
-    private fun nhanDienMau(fileName: String, mau: String): Boolean {
-        val inputStream: InputStream = File("$pathData$fileName.png").inputStream()
-        val bitmap = BitmapFactory.decodeStream(inputStream)
-
-        val width = bitmap.width
-        val height = bitmap.height
-        var r = 0
-        var g = 0
-        var b = 0
-        var count = 0
-
-        val border = 4
-        for (x in 0 until width) {
-            for (y in 0 until height) {
-                if (x < border || y < border || x >= width - border || y >= height - border) {
-                    val pixel = bitmap.getPixel(x, y)
-                    r += Color.red(pixel)
-                    g += Color.green(pixel)
-                    b += Color.blue(pixel)
-                    count++
-                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi trong bossChest: ${e.message}", e)
+                delay(1000)
             }
         }
-
-        if (count == 0) return false
-
-        val avgR = r / count
-        val avgG = g / count
-        val avgB = b / count
-
-        // Đổi sang HSV để phân loại màu
-        val hsv = FloatArray(3)
-        Color.RGBToHSV(avgR, avgG, avgB, hsv)
-        val hue = hsv[0].toDouble()      // 0-360
-//        val sat = hsv[1]      // 0-1
-//        val valBrightness = hsv[2] // 0-1
-//
-//        val colorResult = when {
-//            hue in 25f..60f && sat > 0.4f -> "ORANGE"  // vàng-cam
-//            (hue in 260f..300f) && sat > 0.3f -> "PURPLE" // tím
-//            (hue in 190f..240f) && sat > 0.3f -> "BLUE"   // xanh
-//            else -> "UNKNOWN"
-//        }
-
-        //R=38,G=36,B=29,H=46.666668 vang cam
-        //R=38,G=35,B=30,H=37.5 tim
-        //R=38,G=36,B=30,H=45.0 xanh
-
-        val colorResult = when {
-            // Vàng cam
-            avgR == 42 &&
-                    avgG == 38 &&
-                    avgB == 28 &&
-                    hue == 42.85714340209961 -> "Vang cam"
-
-            // Tím
-            avgR == 40 &&
-                    avgG == 35 &&
-                    avgB == 31 &&
-                    hue == 26.66666603088379 -> "Tim"
-
-            // Xanh
-            avgR == 37 &&
-                    avgG == 38 &&
-                    avgB == 32 &&
-                    hue == 70.00000762939453 -> "Xanh"
-
-            else -> "Khong ro"
-        }
-
-        // Ghi kết quả ra file log
-        val textToAppend = "$colorResult (R=$avgR,G=$avgG,B=$avgB,H=$hue) - ${getCurrentDateTime()}"
-        BufferedWriter(FileWriter("$pathData$fileName.txt", true)).use { writer ->
-            writer.write(textToAppend)
-            writer.newLine()
-        }
-
-        return colorResult == mau
     }
 
-    private fun test() {
-        Thread {
-            backupEHT()
-//            "com.superplanet.evilhunter".openApp(500)
-//            "trangbithu".screenCapture(0)
-//            cropImage("trangbithu", 414, 904, 661 - 414, 1132 - 904)
-//            val isTrue = nhanDienMau("trangbithu", "Vang cam")
-        }.start()
-    }
-
-    private fun ruongTrangBiThu() {
-        auto = true
-        Thread {
-            while (auto) {
+    /**
+     * Auto tính cách
+     */
+    private suspend fun character() {
+        while (isRunning.get()) {
+            try {
                 initAuto()
 
-                //Nhan chon kho thi tran
-                click(751, 2294, 500)
-
-                //Nhan dac biet
-                click(674, 1356, 500)
-
-                //Keo
-                swipe(495, 2164, 495, 1437, 500, 500)
-                swipe(495, 2164, 495, 1437, 500, 500)
-                swipe(495, 2164, 495, 1437, 500, 500)
-                swipe(495, 2164, 495, 1437, 500, 500)
-                swipe(495, 2164, 495, 1437, 500, 500)
-                swipe(495, 2164, 495, 1437, 500, 500)
-                swipe(495, 2164, 495, 1437, 500, 500)
-
-                //Nhan chon ruong
-                click(540, 1473, 500)
-
-                //Nhan su dung
-                click(535, 1567, 5000)
-
-                "trangbithu".screenCapture(0)
-
-                if (!auto) break
-                cropImage("trangbithu", 414, 904, 661 - 414, 1132 - 904)
-
-                if (!auto) break
-                val isTrue = nhanDienMau("trangbithu", "Vang cam")
-                if (!auto) break
-                if (isTrue) backup()
-            }
-        }.start()
-    }
-
-    private fun tinhCach() {
-        auto = true
-        Thread {
-            while (auto) {
-                initAuto()
-
-                //Nhấn mở rương
+                // Nhấn mở rương
                 click(751, 2315, 500)
 
-                //Nhấn tab đồ đặc biệt
+                // Nhấn tab đồ đặc biệt
                 click(666, 1368, 500)
 
-                //Kéo
-                swipe(430, 2181, 430, 1429, 500, 500)
-                swipe(430, 2181, 430, 1429, 500, 500)
-                swipe(430, 2181, 430, 1429, 500, 500)
-                swipe(430, 2181, 430, 1429, 500, 500)
+                // Kéo xuống
+                repeat(4) {
+                    swipe(430, 2181, 430, 1429, 500, 500)
+                }
 
-                //Nhấn vào bình
+                // Nhấn vào bình
                 click(747, 1500, 500)
 
-                //Nhấn sử dụng
+                // Nhấn sử dụng
                 click(355, 1611, 500)
 
-                //Chọn hunter
+                // Chọn hunter
                 click(293, 1011, 500)
 
-                //Nhấn thay đổi
+                // Nhấn thay đổi
                 click(371, 1731, 4000)
 
-                //Nhấn thợ săn
+                // Nhấn thợ săn
                 click(543, 2308, 1000)
 
-                //Chọn thợ săn đầu
+                // Chọn thợ săn đầu
                 click(121, 1763, 4000)
 
-                //Chụp ảnh
-                "Character".screenCapture(0)
-
-                //Cắt ảnh
-                if (!auto) break
+                // Kiểm tra tính cách
+                screenCapture("Character", 0)
                 cropImage("Character", 202, 404, 867 - 202, 498 - 404)
 
-                if (!auto) break
-                val isTrue =
-                    getTextFromImage(
-                        "Character",
-                        listOf("Nhanh Nhen"),
-                        1
-                    )
-
-                if (!auto) break
-                if (isTrue) {
-                    auto = false
+                if (checkTextInImage("Character", listOf("Nhanh Nhen"), 1)) {
+                    Log.i(TAG, "Đã có tính cách Nhanh Nhẹn")
                     break
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi trong character: ${e.message}", e)
+                delay(1000)
             }
-        }.start()
-    }
-
-    fun backupEHT() {
-        try {
-            val commands = """
-                su -c "
-                am force-stop com.superplanet.evilhunter;
-                mkdir -p /data/local/tmp/EHT_Backup;
-                cp -a /data/data/com.superplanet.evilhunter/databases /data/local/tmp/EHT_Backup/;
-                cp -a /data/data/com.superplanet.evilhunter/shared_prefs /data/local/tmp/EHT_Backup/;
-                cp -a /data/data/com.superplanet.evilhunter/files /data/local/tmp/EHT_Backup/;
-                cd /data/local/tmp; tar -cf EHT_Backup.tar EHT_Backup;
-                mv /data/local/tmp/EHT_Backup.tar /storage/emulated/0/AutoEHT/"
-            """.trimIndent()
-            Runtime.getRuntime().exec(arrayOf("sh", "-c", commands)).waitFor()
-            TelegramBotInstance.telegramBot.sendMessage("Backup EHT hoàn tất")
-        } catch (e: Exception) {
-            TelegramBotInstance.telegramBot.sendMessage("Lỗi backup EHT: ${e.message}")
         }
     }
 
-    fun restoreEHT() {
-        try {
-            val backupFile = "$pathData/EHT_Backup/eht_backup.tar"
-            val command = """
-                    su -c "tar -xf $backupFile -C /"
-                """.trimIndent()
-            Runtime.getRuntime().exec(arrayOf("sh", "-c", command)).waitFor()
-            TelegramBotInstance.telegramBot.sendMessage("Restore EHT hoàn tất")
-        } catch (e: Exception) {
-            TelegramBotInstance.telegramBot.sendMessage("Lỗi restore EHT: ${e.message}")
+    private val mmShell by lazy {
+        Shell.Builder.create()
+            .setFlags(Shell.FLAG_MOUNT_MASTER)   // tương đương su -mm
+            .build()
+    }
+
+    private suspend fun backupAppData() {
+        withContext(Dispatchers.IO) {
+
+            val src = "/data/data/com.superplanet.evilhunter"
+            val dst = "/storage/emulated/0/AutoEHT/backup_evilhunter.tar"
+
+            // Đảm bảo thư mục
+            Shell.cmd("mkdir -p /storage/emulated/0/AutoEHT").exec()
+
+            val cmd = """
+            cd /data/data
+            tar -cf "$dst" "com.superplanet.evilhunter"
+        """.trimIndent()
+
+            val result = mmShell.newJob().add(cmd).exec()
+
+            if (!result.isSuccess) {
+                Log.e("AutoADB", "Backup FAILED: exitCode = ${result.code}")
+            } else {
+                Log.i("AutoADB", "Backup completed: $dst")
+            }
         }
+    }
+
+    private suspend fun restoreAppData() {
+        withContext(Dispatchers.IO) {
+
+            val src = "/storage/emulated/0/AutoEHT/backup_evilhunter.tar"
+            val dst = "/data/data"
+
+            // Dừng app trước khi restore
+            mmShell.newJob().add("am force-stop com.superplanet.evilhunter").exec()
+
+            val cmd = """
+            cd "$dst"
+            rm -rf com.superplanet.evilhunter
+            tar -xf "$src"
+            chown -R u0_a349:u0_a349 com.superplanet.evilhunter
+        """.trimIndent()
+
+            val result = mmShell.newJob().add(cmd).exec()
+
+            if (!result.isSuccess) {
+                Log.e("AutoADB", "Restore FAILED: exitCode = ${result.code}")
+            } else {
+                Log.i("AutoADB", "Restore completed successfully")
+            }
+        }
+    }
+
+
+    /**
+     * Cleanup khi không còn sử dụng
+     */
+    fun cleanup() {
+        stop()
+        scope.cancel()
+        textRecognizer.close()
     }
 }

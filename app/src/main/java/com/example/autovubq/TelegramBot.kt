@@ -44,7 +44,7 @@ class TelegramBot {
             }
 
             "/docfile" -> {
-                val fullText = AutoInstance.autoADB.docFile(commands[1])
+                val fullText = AutoInstance.autoADB.readFile(commands[1])
                 val maxLength = 4096
 
                 var index = 0
@@ -59,7 +59,7 @@ class TelegramBot {
             "/xoafile" -> {
                 bot.sendMessage(
                     ChatId.fromId(message.chat.id),
-                    AutoInstance.autoADB.xoaFile(commands[1])
+                    AutoInstance.autoADB.clearFile(commands[1])
                 )
             }
 

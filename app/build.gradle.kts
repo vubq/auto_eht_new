@@ -67,4 +67,6 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.mlkit:common:16.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    implementation("com.github.topjohnwu.libsu:core:5.3.0")
+    implementation("com.github.topjohnwu.libsu:io:5.3.0")
 }
